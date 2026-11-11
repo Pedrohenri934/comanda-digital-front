@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AppStateService } from '../../services/app-state.service';
+import { AuthService, mensagemDeErro } from '../../services/auth.service';
 @Component({ selector:'app-client-register', standalone:true, imports:[FormsModule,RouterLink], template:`
 <div class="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-8">
   <div class="fixed inset-0 overflow-hidden pointer-events-none"><div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-red-900/15 rounded-full blur-3xl"></div></div>
@@ -19,22 +19,27 @@ import { AppStateService } from '../../services/app-state.service';
           <input [(ngModel)]="form[f.key]" [type]="(f.key==='password'||f.key==='confirm')?(showPass?'text':'password'):f.type" [placeholder]="f.ph"
             class="w-full bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-4 py-3 outline-none focus:border-red-700 transition-colors placeholder:text-neutral-600"/></div>
         }
-        <button (click)="register()" class="w-full bg-red-800 hover:bg-red-700 text-white rounded-xl py-3 transition-colors mt-2 font-semibold">Criar conta</button>
+        <button (click)="register()" [disabled]="loading()" class="w-full bg-red-800 hover:bg-red-700 disabled:opacity-60 text-white rounded-xl py-3 transition-colors mt-2 font-semibold">{{loading()?'Criando conta...':'Criar conta'}}</button>
       </div>
       <p class="text-center text-neutral-500 text-sm mt-6">Já tem conta? <a routerLink="/cliente/login" class="text-red-400 hover:text-red-300 transition-colors">Entrar</a></p>
     </div>
   </div>
 </div>` })
 export class ClientRegisterComponent {
-  form:Record<string,string>={name:'',email:'',phone:'',password:'',confirm:''};
-  showPass=false; error=signal('');
-  fields=[{key:'name',label:'Nome completo',type:'text',ph:'Seu nome completo'},{key:'email',label:'E-mail',type:'email',ph:'seu@email.com'},{key:'phone',label:'Telefone',type:'tel',ph:'(11) 99999-0000'},{key:'password',label:'Senha',type:'password',ph:'••••••••'},{key:'confirm',label:'Confirmar senha',type:'password',ph:'••••••••'}];
-  constructor(public r:Router, private s:AppStateService){}
+  form:Record<string,string>={name:'',email:'',phone:'',address:'',password:'',confirm:''};
+  showPass=false; error=signal(''); loading=signal(false);
+  fields=[{key:'name',label:'Nome completo',type:'text',ph:'Seu nome completo'},{key:'email',label:'E-mail',type:'email',ph:'seu@email.com'},{key:'phone',label:'Telefone',type:'tel',ph:'(11) 99999-0000'},{key:'address',label:'Endereço de entrega',type:'text',ph:'Rua, número, bairro'},{key:'password',label:'Senha',type:'password',ph:'••••••••'},{key:'confirm',label:'Confirmar senha',type:'password',ph:'••••••••'}];
+  constructor(public r:Router, private auth:AuthService){}
   register(){
     this.error.set('');
-    if(this.form['password']!==this.form['confirm']){this.error.set('As senhas não coincidem.');return;}
-    if(this.form['password'].length<6){this.error.set('A senha deve ter pelo menos 6 caracteres.');return;}
-    if(this.s.registerClient({name:this.form['name'],email:this.form['email'],phone:this.form['phone'],password:this.form['password']}))this.r.navigateByUrl('/cliente/cardapio');
-    else this.error.set('E-mail já cadastrado.');
+    const f=this.form;
+    if(!f['name'].trim()||!f['email'].trim()||!f['phone'].trim()||!f['address'].trim()){this.error.set('Preencha todos os campos.');return;}
+    if(f['password']!==f['confirm']){this.error.set('As senhas não coincidem.');return;}
+    if(f['password'].length<6){this.error.set('A senha deve ter pelo menos 6 caracteres.');return;}
+    this.loading.set(true);
+    this.auth.register({nome:f['name'].trim(),email:f['email'].trim(),senha:f['password'],telefone:f['phone'].trim(),endereco:f['address'].trim()}).subscribe({
+      next:()=>{ this.loading.set(false); this.r.navigateByUrl('/cliente/cardapio'); },
+      error:e=>{ this.loading.set(false); this.error.set(mensagemDeErro(e,'Não foi possível criar a conta.')); }
+    });
   }
 }

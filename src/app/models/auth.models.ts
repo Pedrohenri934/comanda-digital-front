@@ -14,12 +14,21 @@ export interface RegisterRequest {
   endereco: string;
 }
 
-// Resposta do POST /api/auth/login. CONFIRMAR com o back se o campo se chama "token".
-export interface LoginResponse {
-  token: string;
+// Usuario devolvido pela API (nunca inclui senha).
+export interface UsuarioApi {
+  id: number;
+  nome: string;
+  email: string;
+  perfil: Perfil;
 }
 
-// Conteúdo (payload) do JWT. "role" é o que o SRS pede (RF-038); "sub" costuma ser o email; "exp" é em segundos.
+// Resposta do POST /api/auth/login e do POST /api/auth/register.
+export interface LoginResponse {
+  token: string;
+  usuario: UsuarioApi;
+}
+
+// Conteudo (payload) do JWT: "sub" = email, "role" = perfil, "exp" em segundos.
 export interface JwtPayload {
   sub: string;
   role: Perfil;

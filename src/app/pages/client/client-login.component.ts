@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AppStateService } from '../../services/app-state.service';
+import { AuthService, mensagemDeErro, urlDeRetorno } from '../../services/auth.service';
 @Component({ selector:'app-client-login', standalone:true, imports:[FormsModule,RouterLink], template:`
 <div class="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
   <div class="fixed inset-0 overflow-hidden pointer-events-none"><div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-red-900/15 rounded-full blur-3xl"></div></div>
@@ -21,16 +21,25 @@ import { AppStateService } from '../../services/app-state.service';
           <div class="relative"><svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <input [(ngModel)]="password" [type]="showPass?'text':'password'" placeholder="••••••••" class="w-full bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl pl-10 pr-12 py-3 outline-none focus:border-red-700 transition-colors placeholder:text-neutral-600" (keydown.enter)="login()"/>
           <button type="button" (click)="togglePass()" class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors text-sm">{{showPass?'👁':'👁‍🗨'}}</button></div></div>
-        <button (click)="login()" class="w-full bg-red-800 hover:bg-red-700 text-white rounded-xl py-3 transition-colors mt-2 font-semibold">Entrar</button>
+        <button (click)="login()" [disabled]="loading()" class="w-full bg-red-800 hover:bg-red-700 disabled:opacity-60 text-white rounded-xl py-3 transition-colors mt-2 font-semibold">{{loading()?'Entrando...':'Entrar'}}</button>
       </div>
       <p class="text-center text-neutral-500 text-sm mt-6">Não tem conta? <a routerLink="/cliente/cadastro" class="text-red-400 hover:text-red-300 transition-colors">Cadastre-se</a></p>
-      <div class="mt-4 p-3 bg-neutral-800/50 rounded-lg text-xs text-neutral-500">Demo: joao&#64;email.com / 123456</div>
-    </div>
+          </div>
   </div>
 </div>` })
 export class ClientLoginComponent {
-  email=''; password=''; showPass=false; error=signal('');
-  constructor(public r:Router, private s:AppStateService){}
-  login(){ this.error.set(''); if(this.s.loginClient(this.email,this.password))this.r.navigateByUrl('/cliente/cardapio'); else this.error.set('E-mail ou senha inválidos.'); }
+  email=''; password=''; showPass=false; error=signal(''); loading=signal(false);
+  constructor(public r:Router, private auth:AuthService, private route:ActivatedRoute){}
+  login(){
+    this.error.set(''); this.loading.set(true);
+    this.auth.login({email:this.email.trim(), senha:this.password}).subscribe({
+      next:res=>{
+        this.loading.set(false);
+        if(res.usuario.perfil!=='CLIENTE'){ this.auth.limparSessao(); this.error.set('Esta área é só para clientes. Use o painel administrativo ou da cozinha.'); return; }
+        this.r.navigateByUrl(urlDeRetorno(this.route,'/cliente/cardapio'));
+      },
+      error:e=>{ this.loading.set(false); this.error.set(mensagemDeErro(e,'E-mail ou senha inválidos.')); }
+    });
+  }
   togglePass() { this.showPass = !this.showPass; }
 }

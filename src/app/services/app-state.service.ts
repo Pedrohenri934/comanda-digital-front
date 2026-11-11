@@ -95,6 +95,9 @@ export class AppStateService {
   isAdminLoggedIn  = signal(false);
   isKitchenLoggedIn = signal(false);
 
+  // Gancho preenchido pelo AuthService: encerra a sessao real (token) quando uma tela antiga faz logout.
+  onLogout?: () => void;
+
   cartCount = computed(() => this.cart().reduce((s,i) => s+i.qty, 0));
   cartTotal = computed(() => this.cart().reduce((s,i) => s+i.dish.price*i.qty, 0));
 
@@ -132,7 +135,7 @@ export class AppStateService {
   // ── Client ──────────────────────────────────────────────────────────────
   loginClient(email:string,password:string):boolean { const c=this.clients().find(c=>c.email===email&&c.password===password); if(c){this.currentClient.set(c);return true;} return false; }
   registerClient(data:Omit<Client,'id'|'favorites'>):boolean { if(this.clients().find(c=>c.email===data.email))return false; const nc:Client={...data,id:'c'+Date.now(),favorites:[]}; this.clients.update(cs=>[...cs,nc]); this.currentClient.set(nc); return true; }
-  logoutClient() { this.currentClient.set(null); this.cart.set([]); }
+  logoutClient() { this.currentClient.set(null); this.cart.set([]); this.onLogout?.(); }
   toggleFavorite(dishId:string) { const c=this.currentClient();if(!c)return; const favs=c.favorites.includes(dishId)?c.favorites.filter(f=>f!==dishId):[...c.favorites,dishId]; const u={...c,favorites:favs}; this.currentClient.set(u); this.clients.update(cs=>cs.map(x=>x.id===u.id?u:x)); }
   addToCart(dish:Dish) { this.cart.update(p=>{const ex=p.find(i=>i.dish.id===dish.id); return ex?p.map(i=>i.dish.id===dish.id?{...i,qty:i.qty+1}:i):[...p,{dish,qty:1}];}); }
   removeFromCart(dishId:string) { this.cart.update(p=>p.filter(i=>i.dish.id!==dishId)); }
@@ -149,7 +152,7 @@ export class AppStateService {
 
   // ── Kitchen ─────────────────────────────────────────────────────────────
   loginKitchen(password:string):boolean { if(password==='cozinha123'){this.isKitchenLoggedIn.set(true);return true;} return false; }
-  logoutKitchen() { this.isKitchenLoggedIn.set(false); }
+  logoutKitchen() { this.isKitchenLoggedIn.set(false); this.onLogout?.(); }
   updateOrderStatus(orderId:string,status:OrderStatus) { this.orders.update(os=>os.map(o=>o.id===orderId?{...o,status}:o)); }
 
   // ── Deliverer ───────────────────────────────────────────────────────────
@@ -162,7 +165,7 @@ export class AppStateService {
 
   // ── Admin ───────────────────────────────────────────────────────────────
   loginAdmin(password:string):boolean { if(password==='admin123'){this.isAdminLoggedIn.set(true);return true;} return false; }
-  logoutAdmin() { this.isAdminLoggedIn.set(false); }
+  logoutAdmin() { this.isAdminLoggedIn.set(false); this.onLogout?.(); }
   addDish(dish:Omit<Dish,'id'|'sales'>) { this.dishes.update(ds=>[...ds,{...dish,id:'d'+Date.now(),sales:0}]); }
   updateDish(id:string,data:Partial<Dish>) { this.dishes.update(ds=>ds.map(d=>d.id===id?{...d,...data}:d)); }
   deleteDish(id:string) { this.dishes.update(ds=>ds.filter(d=>d.id!==id)); }
