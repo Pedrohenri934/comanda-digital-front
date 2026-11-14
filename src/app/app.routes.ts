@@ -17,6 +17,9 @@ export const routes: Routes = [
   { path:'admin', loadComponent:()=>import('./pages/admin/admin-layout.component').then(m=>m.AdminLayoutComponent), canActivate:[adminGuard], children:[
     { path:'', redirectTo:'dashboard', pathMatch:'full' },
     { path:'dashboard', loadComponent:()=>import('./pages/admin/admin-dashboard.component').then(m=>m.AdminDashboardComponent) },
+    { path:'fornecedores', loadComponent:()=>import('./pages/admin/admin-suppliers.component').then(m=>m.AdminSuppliersComponent) },
+    { path:'compras', loadComponent:()=>import('./pages/admin/admin-purchases.component').then(m=>m.AdminPurchasesComponent) },
+    { path:'categorias', loadComponent:()=>import('./pages/admin/admin-categories.component').then(m=>m.AdminCategoriesComponent) },
     { path:'pratos', loadComponent:()=>import('./pages/admin/admin-dishes.component').then(m=>m.AdminDishesComponent) },
     { path:'cardapio-semana', loadComponent:()=>import('./pages/admin/admin-weekly-menu.component').then(m=>m.AdminWeeklyMenuComponent) },
     { path:'pedidos', loadComponent:()=>import('./pages/admin/admin-orders.component').then(m=>m.AdminOrdersComponent) },

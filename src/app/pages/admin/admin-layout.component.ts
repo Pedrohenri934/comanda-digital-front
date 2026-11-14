@@ -5,10 +5,13 @@ import { AppStateService } from '../../services/app-state.service';
 
 const NAV = [
   { path: '/admin/dashboard',       label: 'Dashboard',          icon: '📊' },
+  { path: '/admin/categorias',      label: 'Categorias',         icon: '🗂️' },
   { path: '/admin/pratos',          label: 'Gerenciar Pratos',   icon: '🍽️' },
   { path: '/admin/cardapio-semana', label: 'Cardápio da Semana', icon: '📅' },
   { path: '/admin/pedidos',         label: 'Pedidos',            icon: '🛍️' },
-  { path: '/admin/estoque',         label: 'Estoque',            icon: '📦' },
+  { path: '/admin/estoque',         label: 'Estoque / Ingredientes', icon: '📦' },
+  { path: '/admin/fornecedores',    label: 'Fornecedores',       icon: '🏭' },
+  { path: '/admin/compras',         label: 'Compras',            icon: '🧾' },
   { path: '/admin/entregadores',    label: 'Entregadores',       icon: '🚗' },
   { path: '/admin/cozinha',         label: 'Cozinha',            icon: '👨‍🍳' },
   { path: '/admin/relatorios',      label: 'Relatórios',         icon: '📈' },
