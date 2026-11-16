@@ -44,6 +44,7 @@ export class EntrarComponent {
   private destino(perfil:string):string{
     if(perfil==='ADMIN'||perfil==='GERENTE') return '/admin/dashboard';
     if(perfil==='COZINHEIRO') return '/cozinha/painel';
+    if(perfil==='ENTREGADOR') return '/entregador/painel';
     return urlDeRetorno(this.route,'/');
   }
   togglePass() { this.showPass = !this.showPass; }

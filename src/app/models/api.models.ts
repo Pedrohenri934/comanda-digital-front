@@ -166,3 +166,21 @@ export interface RelatorioBcg {
   dias: number; mediaMargemPct: number; limiarVendas: number;
   pratos: PratoBcg[]; maisVendidos: PratoBcg[]; menosVendidos: PratoBcg[];
 }
+
+// ---------- Entregadores ----------
+export type StatusCadastroEntregador = 'PENDENTE' | 'APROVADO' | 'RECUSADO';
+export interface PerfilEntregador {
+  nome: string; email: string; veiculo: string; placa: string | null; statusCadastro: StatusCadastroEntregador;
+  online: boolean; disponiveis: number; emEntrega: number; entreguesHoje: number; entreguesTotal: number;
+}
+export interface Entrega {
+  pedidoId: number; cliente: string; telefone: string | null; endereco: string; valorTotal: number; pago: boolean;
+  observacoes: string | null; itens: string | null; status: string; criadoEm: string;
+}
+export interface EntregadorAdmin {
+  id: number; nome: string; email: string; telefone: string | null; veiculo: string; placa: string | null;
+  statusCadastro: StatusCadastroEntregador; online: boolean; entregasConcluidas: number; emAndamento: number;
+}
+export interface RegisterEntregador {
+  nome: string; email: string; senha: string; telefone: string; veiculo: string; placa: string;
+}

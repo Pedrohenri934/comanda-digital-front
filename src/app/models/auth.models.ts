@@ -1,5 +1,5 @@
 // Perfis definidos no SRS (RF-040). Precisam ser IGUAIS ao enum Perfil do back.
-export type Perfil = 'ADMIN' | 'GERENTE' | 'COZINHEIRO' | 'CLIENTE';
+export type Perfil = 'ADMIN' | 'GERENTE' | 'COZINHEIRO' | 'CLIENTE' | 'ENTREGADOR';
 
 export interface LoginRequest {
   email: string;

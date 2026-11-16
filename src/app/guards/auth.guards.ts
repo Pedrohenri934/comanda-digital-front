@@ -1,6 +1,5 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AppStateService } from '../services/app-state.service';
 import { AuthService } from '../services/auth.service';
 import { Perfil } from '../models/auth.models';
 
@@ -19,8 +18,4 @@ export const clientGuard = exigirPerfil('/entrar', 'CLIENTE');
 export const kitchenGuard = exigirPerfil('/entrar', 'COZINHEIRO', 'GERENTE', 'ADMIN');
 export const adminGuard = exigirPerfil('/entrar', 'ADMIN', 'GERENTE');
 
-// O SRS nao tem o perfil entregador: essa area continua com dados de demonstracao.
-export const delivererGuard = () => {
-  const s = inject(AppStateService), r = inject(Router);
-  return s.currentDeliverer() ? true : r.createUrlTree(['/entregador/login']);
-};
+export const delivererGuard = exigirPerfil('/entrar', 'ENTREGADOR');

@@ -11,8 +11,8 @@ export const routes: Routes = [
   { path:'cliente/pedido/:id', loadComponent:()=>import('./pages/client/client-tracking.component').then(m=>m.ClientTrackingComponent), canActivate:[clientGuard] },
   { path:'cozinha/login', redirectTo:'entrar' },
   { path:'cozinha/painel', loadComponent:()=>import('./pages/kitchen/kitchen-dashboard.component').then(m=>m.KitchenDashboardComponent), canActivate:[kitchenGuard] },
-  { path:'entregador/login', loadComponent:()=>import('./pages/delivery/delivery-login.component').then(m=>m.DeliveryLoginComponent) },
-  { path:'entregador/cadastro', loadComponent:()=>import('./pages/delivery/delivery-register.component').then(m=>m.DeliveryRegisterComponent) },
+  { path:'entregador/login', redirectTo:'entrar' },
+  { path:'entregador/cadastro', redirectTo:'cliente/cadastro' },
   { path:'entregador/painel', loadComponent:()=>import('./pages/delivery/delivery-panel.component').then(m=>m.DeliveryPanelComponent), canActivate:[delivererGuard] },
   { path:'admin/login', redirectTo:'entrar' },
   { path:'admin', loadComponent:()=>import('./pages/admin/admin-layout.component').then(m=>m.AdminLayoutComponent), canActivate:[adminGuard], children:[
