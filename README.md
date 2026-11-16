@@ -19,6 +19,9 @@ Front-end Angular do sistema **Comanda Digital** (Dark Kitchen "Boi Na Brasa") �
 | Gerente | gerente@email.com | senha123 |
 | Cozinha | cozinha@email.com | senha123 |
 | Cliente | criar conta pela tela de cadastro | — |
+| Entregador | carlos@entrega.com | 123456 |
+| Entregador | ana@entrega.com | 123456 |
+| Entregador (pendente) | joao@entrega.com | 123456 |
 
 ## Funcionalidades
 
@@ -52,7 +55,8 @@ Saída em `dist/boi-na-brasa-angular/browser`. O `vercel.json` já configura o b
 
 ## Observação
 
-Algumas telas administrativas antigas (Cardápio da Semana, Entregadores, Relatórios, Matriz BCG) ainda usam dados de demonstração e estão fora do escopo do SRS.
+Todas as telas usam a API real: cardápio, pedidos, cozinha, estoque, compras, dashboard, cardápio da semana, matriz BCG e entregadores.
+
 
 ## Autor
 
