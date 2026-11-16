@@ -3,9 +3,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, mensagemDeErro } from '../../services/auth.service';
 import { CardapioService } from '../../services/cardapio.service';
+import { CardapioSemanaService } from '../../services/cardapio-semana.service';
 import { CarrinhoService } from '../../services/carrinho.service';
 import { PedidoService } from '../../services/pedido.service';
-import { Categoria, Prato } from '../../models/api.models';
+import { Categoria, ItemHoje, Prato } from '../../models/api.models';
 import { moeda } from '../../models/status-pedido';
 
 // Cardapio PUBLICO (RF-001): qualquer pessoa ve os pratos. Login so e exigido ao finalizar o pedido.
@@ -48,6 +49,22 @@ import { moeda } from '../../models/status-pedido';
   </header>
 
   <div class="max-w-5xl mx-auto px-4 py-6">
+    @if(destaques().length){
+      <div class="mb-6">
+        <h2 class="text-white text-sm font-semibold mb-3">⭐ Especiais de hoje</h2>
+        <div class="flex gap-3 overflow-x-auto pb-2">
+          @for(e of destaques(); track e.pratoId){
+            <button (click)="abrirEspecial(e)" class="flex-shrink-0 w-60 text-left bg-gradient-to-br from-yellow-900/20 to-[#141414] border border-yellow-800/40 hover:border-yellow-600/60 rounded-2xl overflow-hidden transition-colors">
+              <div class="h-28 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
+                @if(e.fotoUrl && !fotosQuebradas().has(e.pratoId)){<img [src]="e.fotoUrl" [alt]="e.nome" (error)="fotoQuebrou(e.pratoId)" class="w-full h-full object-cover"/>} @else {<span class="text-4xl">{{emoji(e.categoria)}}</span>}
+              </div>
+              <div class="p-3"><p class="text-white text-sm font-medium truncate">{{e.nome}}</p><p class="text-red-400 text-sm font-bold">{{moeda(e.preco)}}</p></div>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
     <div class="flex gap-2 overflow-x-auto pb-2 mb-6">
       <button (click)="escolherCategoria(null)" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm transition-colors"
         [class]="categoriaId()===null ? 'bg-red-800 text-white' : 'bg-[#1a1a1a] text-neutral-400 hover:text-white border border-neutral-800'">Todos</button>
@@ -224,6 +241,7 @@ export class ClientMenuComponent implements OnInit {
   r = inject(Router);
   private route = inject(ActivatedRoute);
   private cardapio = inject(CardapioService);
+  private semana = inject(CardapioSemanaService);
   private pedidos = inject(PedidoService);
 
   moeda = moeda;
@@ -245,6 +263,14 @@ export class ClientMenuComponent implements OnInit {
     return q ? this.pratos().filter(p => p.nome.toLowerCase().includes(q)) : this.pratos();
   });
 
+  // Especiais de hoje (cardapio da semana definido pelo admin).
+  especiais = signal<ItemHoje[]>([]);
+  destaques = computed(() => this.especiais().filter(e => e.destaque));
+  abrirEspecial(e: ItemHoje) {
+    this.abrirDetalhe({ id: e.pratoId, nome: e.nome, descricao: e.descricao, fotoUrl: e.fotoUrl, precoVenda: e.preco,
+      tempoPreparoMin: e.tempoPreparoMin, categoriaId: 0, categoria: e.categoria });
+  }
+
   detalhe = signal<Prato | null>(null);
   qtdDetalhe = signal(1);
   obsDetalhe = '';
@@ -262,6 +288,7 @@ export class ClientMenuComponent implements OnInit {
   ngOnInit() {
     this.cardapio.categorias().subscribe({ next: c => this.categorias.set(c), error: e => this.erro.set(mensagemDeErro(e)) });
     this.carregar();
+    this.semana.hoje().subscribe({ next: l => this.especiais.set(l), error: () => {} });
     // Voltou do login com ?checkout=1: reabre a finalizacao do pedido.
     if (this.route.snapshot.queryParamMap.get('checkout') === '1' && this.auth.hasRole('CLIENTE') && this.cart.itens().length) {
       this.checkoutAberto.set(true);

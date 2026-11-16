@@ -26,7 +26,7 @@ export const routes: Routes = [
     { path:'pedidos', loadComponent:()=>import('./pages/admin/admin-orders.component').then(m=>m.AdminOrdersComponent) },
     { path:'entregadores', loadComponent:()=>import('./pages/admin/admin-deliverers.component').then(m=>m.AdminDeliverersComponent) },
     { path:'cozinha', loadComponent:()=>import('./pages/admin/admin-kitchen.component').then(m=>m.AdminKitchenComponent) },
-    { path:'relatorios', loadComponent:()=>import('./pages/admin/admin-reports.component').then(m=>m.AdminReportsComponent) },
+    { path:'relatorios', redirectTo:'matriz-bcg' },
     { path:'matriz-bcg', loadComponent:()=>import('./pages/admin/admin-bcg.component').then(m=>m.AdminBcgComponent) },
     { path:'estoque', loadComponent:()=>import('./pages/admin/admin-inventory.component').then(m=>m.AdminInventoryComponent) },
   ]},

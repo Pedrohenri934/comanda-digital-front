@@ -1,174 +1,158 @@
-import { Component, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { AppStateService } from '../../services/app-state.service';
-import { Dish, WeeklyMenuDay } from '../../models/models';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { CardapioSemanaService } from '../../services/cardapio-semana.service';
+import { CadastroAdminService } from '../../services/cadastro-admin.service';
+import { mensagemDeErro } from '../../services/auth.service';
+import { DiaCardapio, PratoAdmin } from '../../models/api.models';
+import { moeda } from '../../models/status-pedido';
 
-const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-
+// Cardapio da semana: define quais pratos aparecem em cada dia e qual e o especial do dia.
+// O cliente ve os especiais de hoje no topo do cardapio.
 @Component({
   selector: 'app-admin-weekly-menu',
   standalone: true,
-  imports: [FormsModule],
   template: `
 <div class="p-4 md:p-6 max-w-5xl mx-auto">
   <div class="mb-6">
     <h1 class="text-white text-2xl font-semibold">Cardápio da Semana</h1>
-    <p class="text-neutral-400 text-sm mt-1">Personalize o cardápio para cada dia</p>
+    <p class="text-neutral-400 text-sm mt-1">Escolha os pratos de cada dia e marque ⭐ o especial do dia (aparece em destaque para o cliente)</p>
   </div>
 
+  @if(erro()){<div class="bg-red-900/30 border border-red-800/50 text-red-400 rounded-xl px-4 py-3 text-sm mb-4">{{erro()}}</div>}
+  @if(ok()){<div class="bg-green-900/30 border border-green-800/50 text-green-400 rounded-xl px-4 py-3 text-sm mb-4">{{ok()}}</div>}
+
   <div class="flex gap-2 overflow-x-auto pb-2 mb-6">
-    @for(day of days; track day){
-      <button (click)="selectDay(day)"
-        class="flex-shrink-0 px-4 py-2 rounded-xl text-sm transition-colors relative"
-        [class]="selDay()===day ? 'bg-red-800 text-white' : 'bg-[#1a1a1a] text-neutral-400 border border-neutral-800 hover:text-white'">
-        {{day}}
-        @if(day===today){<span class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full"></span>}
+    @for(d of dias(); track d.dia){
+      <button (click)="escolherDia(d.dia)" [disabled]="editando()"
+        class="flex-shrink-0 px-4 py-2 rounded-xl text-sm transition-colors relative disabled:opacity-60"
+        [class]="sel()===d.dia ? 'bg-red-800 text-white' : 'bg-[#1a1a1a] text-neutral-400 border border-neutral-800 hover:text-white'">
+        {{d.nome}}
+        @if(d.hoje){<span class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full"></span>}
       </button>
     }
   </div>
 
-  <div class="bg-[#141414] border border-neutral-800 rounded-2xl p-6">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h2 class="text-white font-semibold">
-          {{selDay()}}
-          @if(selDay()===today){<span class="text-green-400 text-sm"> (Hoje)</span>}
-        </h2>
-        <p class="text-neutral-500 text-sm">{{dayMenu().dishes.length}} pratos disponíveis</p>
-      </div>
-      @if(!editMode()){
-        <button (click)="startEdit()" class="bg-red-800 hover:bg-red-700 text-white rounded-xl px-4 py-2 text-sm transition-colors">Editar</button>
-      } @else {
-        <div class="flex gap-2">
-          <button (click)="editMode.set(false)" class="bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl px-4 py-2 text-sm transition-colors">Cancelar</button>
-          <button (click)="saveEdit()" class="bg-green-800 hover:bg-green-700 text-white rounded-xl px-4 py-2 text-sm transition-colors">✓ Salvar</button>
+  @if(diaAtual(); as d){
+    <div class="bg-[#141414] border border-neutral-800 rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <div>
+          <h2 class="text-white font-semibold">{{d.nome}} @if(d.hoje){<span class="text-green-400 text-sm">(Hoje)</span>}</h2>
+          <p class="text-neutral-500 text-sm">{{d.itens.length}} pratos no cardápio</p>
         </div>
-      }
-    </div>
-
-    @if(!editMode()){
-      <!-- VIEW MODE -->
-      <div class="space-y-3">
-        @if(dayMenu().dishes.length===0){
-          <p class="text-neutral-500 text-sm text-center py-8">Nenhum prato configurado para este dia</p>
+        @if(!editando()){
+          <button (click)="editar()" class="bg-red-800 hover:bg-red-700 text-white rounded-xl px-4 py-2 text-sm transition-colors">Editar</button>
         } @else {
-          @for(id of dayMenu().dishes; track id){
-            @let dish = getDish(id);
-            @if(dish){
-              <div class="flex items-center gap-3 bg-[#1a1a1a] rounded-xl p-3">
-                <img [src]="dish.image" [alt]="dish.name" class="w-12 h-12 rounded-lg object-cover"/>
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <p class="text-white text-sm">{{dish.name}}</p>
-                    @if(isSpecialInDay(id)){<span class="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-0.5 rounded-full">⭐ Especial</span>}
-                    @if(getPromoInDay(id)){<span class="text-xs text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full">🏷 -{{getPromoInDay(id)!.discount}}%</span>}
-                  </div>
-                  <p class="text-neutral-500 text-xs">R$ {{dish.price.toFixed(2)}}</p>
-                </div>
-              </div>
-            }
-          }
+          <div class="flex gap-2">
+            <button (click)="cancelar()" [disabled]="salvando()" class="bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl px-4 py-2 text-sm transition-colors">Cancelar</button>
+            <button (click)="salvar()" [disabled]="salvando()" class="bg-green-800 hover:bg-green-700 disabled:opacity-60 text-white rounded-xl px-4 py-2 text-sm transition-colors">{{salvando()?'Salvando...':'✓ Salvar'}}</button>
+          </div>
         }
       </div>
-    } @else {
-      <!-- EDIT MODE -->
-      <div class="space-y-2">
-        <p class="text-neutral-400 text-sm mb-3">Selecione os pratos, destaque o especial e configure promoções:</p>
-        @for(dish of activeDishes(); track dish.id){
-          <div class="rounded-xl border p-3 transition-colors"
-            [class]="isDishSelected(dish.id) ? 'bg-[#1e1e1e] border-red-800/40' : 'bg-[#1a1a1a] border-neutral-800/50'">
-            <div class="flex items-center gap-3">
-              <button (click)="toggleDish(dish.id)"
-                class="w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors text-xs"
-                [class]="isDishSelected(dish.id) ? 'bg-red-800 border-red-700 text-white' : 'border-neutral-600'">
-                {{isDishSelected(dish.id) ? '✓' : ''}}
-              </button>
-              <img [src]="dish.image" [alt]="dish.name" class="w-10 h-10 rounded-lg object-cover"/>
-              <div class="flex-1 min-w-0">
-                <p class="text-white text-sm truncate">{{dish.name}}</p>
-                <p class="text-neutral-500 text-xs">R$ {{dish.price.toFixed(2)}}</p>
-              </div>
-              @if(isDishSelected(dish.id)){
-                <div class="flex items-center gap-2">
-                  <button (click)="setSpecial(dish.id)" title="Especial do dia"
-                    class="p-1.5 rounded-lg transition-colors text-xs"
-                    [class]="isDishSpecialInEdit(dish.id) ? 'bg-yellow-700 text-white' : 'bg-neutral-700 text-neutral-400 hover:text-yellow-400'">⭐</button>
-                  <button (click)="togglePromo(dish.id)" title="Promoção"
-                    class="p-1.5 rounded-lg transition-colors text-xs"
-                    [class]="getPromoInEdit(dish.id) ? 'bg-green-700 text-white' : 'bg-neutral-700 text-neutral-400 hover:text-green-400'">🏷</button>
+
+      @if(!editando()){
+        @if(d.itens.length===0){
+          <p class="text-neutral-500 text-sm text-center py-8">Nenhum prato configurado para este dia</p>
+        } @else {
+          <div class="space-y-3">
+            @for(i of d.itens; track i.pratoId){
+              <div class="flex items-center gap-3 bg-[#1a1a1a] rounded-xl p-3">
+                @if(i.fotoUrl){<img [src]="i.fotoUrl" [alt]="i.nome" class="w-12 h-12 rounded-lg object-cover"/>} @else {<div class="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center">🍽️</div>}
+                <div class="flex-1 min-w-0">
+                  <p class="text-white text-sm flex items-center gap-2 flex-wrap">{{i.nome}}
+                    @if(i.destaque){<span class="text-xs bg-yellow-900/40 text-yellow-300 px-2 py-0.5 rounded-full">⭐ Especial</span>}
+                    @if(i.status!=='ATIVO'){<span class="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full">Inativo</span>}
+                  </p>
+                  <p class="text-neutral-500 text-xs">{{i.categoria}} · {{moeda(i.preco)}}</p>
                 </div>
-              }
-            </div>
-            @if(getPromoInEdit(dish.id)){
-              <div class="mt-2 ml-8 flex items-center gap-2">
-                <label class="text-neutral-400 text-xs">Desconto:</label>
-                <input type="number" min="1" max="90"
-                  [value]="getPromoInEdit(dish.id)!.discount"
-                  (change)="setPromoDiscount(dish.id, $any($event.target).valueAsNumber)"
-                  class="w-16 bg-[#141414] border border-neutral-700 text-white rounded-lg px-2 py-1 text-xs outline-none"/>
-                <span class="text-neutral-400 text-xs">%</span>
               </div>
             }
           </div>
         }
-      </div>
-    }
-  </div>
+      } @else {
+        <p class="text-neutral-500 text-xs mb-3">Marque os pratos que entram neste dia. A estrela define o especial.</p>
+        @if(carregandoPratos()){
+          <p class="text-neutral-500 text-sm text-center py-8">Carregando pratos...</p>
+        } @else {
+          <div class="space-y-2">
+            @for(p of pratos(); track p.id){
+              <div class="flex items-center gap-3 rounded-xl p-3 border"
+                [class]="incluido(p.id) ? 'bg-[#1a1a1a] border-red-900/50' : 'bg-[#101010] border-neutral-800'">
+                <input type="checkbox" [checked]="incluido(p.id)" (change)="alternar(p.id)" class="w-4 h-4 accent-red-600"/>
+                @if(p.fotoUrl){<img [src]="p.fotoUrl" [alt]="p.nome" class="w-10 h-10 rounded-lg object-cover"/>} @else {<div class="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">🍽️</div>}
+                <div class="flex-1 min-w-0">
+                  <p class="text-white text-sm truncate">{{p.nome}}</p>
+                  <p class="text-neutral-500 text-xs">{{p.categoria}} · {{moeda(p.precoVenda)}}</p>
+                </div>
+                <button type="button" (click)="alternarDestaque(p.id)" [disabled]="!incluido(p.id)"
+                  class="text-xl disabled:opacity-20" [title]="'Especial do dia'">{{destaque(p.id) ? '⭐' : '☆'}}</button>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
 </div>`
 })
-export class AdminWeeklyMenuComponent {
-  days = DAYS;
-  today = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
-  selDay = signal(DAYS[0]);
-  editMode = signal(false);
-  tempMenu = signal<WeeklyMenuDay>({ dishes: [], promotions: [] });
+export class AdminWeeklyMenuComponent implements OnInit {
+  private api = inject(CardapioSemanaService);
+  private cadastro = inject(CadastroAdminService);
+  moeda = moeda;
 
-  constructor(public s: AppStateService) {}
+  dias = signal<DiaCardapio[]>([]);
+  sel = signal(1);
+  diaAtual = computed(() => this.dias().find(d => d.dia === this.sel()) ?? null);
+  pratos = signal<PratoAdmin[]>([]);
+  carregandoPratos = signal(false);
+  editando = signal(false);
+  salvando = signal(false);
+  erro = signal('');
+  ok = signal('');
+  // pratoId -> e especial? (so tem o que esta marcado para o dia em edicao)
+  private marcados = signal<Record<number, boolean>>({});
 
-  dayMenu() { return this.s.weeklyMenu()[this.selDay()] || { dishes: [], promotions: [] }; }
-  activeDishes(): Dish[] { return this.s.dishes().filter(d => d.active); }
-  getDish(id: string) { return this.s.dishes().find(d => d.id === id) ?? null; }
-
-  // View mode helpers
-  isSpecialInDay(id: string) { return this.dayMenu().specialDishId === id; }
-  getPromoInDay(id: string) { return this.dayMenu().promotions?.find(p => p.dishId === id) ?? null; }
-
-  // Edit mode helpers
-  isDishSelected(id: string) { return this.tempMenu().dishes.includes(id); }
-  isDishSpecialInEdit(id: string) { return this.tempMenu().specialDishId === id; }
-  getPromoInEdit(id: string) { return this.tempMenu().promotions.find(p => p.dishId === id) ?? null; }
-
-  selectDay(day: string) { this.selDay.set(day); this.editMode.set(false); }
-
-  startEdit() {
-    this.tempMenu.set(JSON.parse(JSON.stringify(this.dayMenu())));
-    this.editMode.set(true);
-  }
-  saveEdit() {
-    this.s.updateWeeklyMenu(this.selDay(), this.tempMenu());
-    this.editMode.set(false);
-  }
-  toggleDish(id: string) {
-    this.tempMenu.update(m => ({
-      ...m,
-      dishes: m.dishes.includes(id) ? m.dishes.filter(d => d !== id) : [...m.dishes, id]
-    }));
-  }
-  setSpecial(id: string) {
-    this.tempMenu.update(m => ({ ...m, specialDishId: m.specialDishId === id ? undefined : id }));
-  }
-  togglePromo(id: string) {
-    this.tempMenu.update(m => {
-      const ex = m.promotions.find(p => p.dishId === id);
-      return ex
-        ? { ...m, promotions: m.promotions.filter(p => p.dishId !== id) }
-        : { ...m, promotions: [...m.promotions, { dishId: id, discount: 10 }] };
+  ngOnInit() {
+    this.api.listar().subscribe({
+      next: d => { this.dias.set(d); this.sel.set(d.find(x => x.hoje)?.dia ?? 1); },
+      error: e => this.erro.set(mensagemDeErro(e, 'Não foi possível carregar o cardápio da semana.')),
     });
   }
-  setPromoDiscount(dishId: string, discount: number) {
-    this.tempMenu.update(m => ({
-      ...m,
-      promotions: m.promotions.map(p => p.dishId === dishId ? { ...p, discount } : p)
-    }));
+
+  escolherDia(d: number) { this.sel.set(d); this.ok.set(''); }
+
+  editar() {
+    this.ok.set(''); this.erro.set('');
+    const mapa: Record<number, boolean> = {};
+    for (const i of this.diaAtual()?.itens ?? []) mapa[i.pratoId] = i.destaque;
+    this.marcados.set(mapa);
+    this.editando.set(true);
+    this.carregandoPratos.set(true);
+    this.cadastro.pratos(0, 100).subscribe({
+      next: p => { this.pratos.set(p.content.filter(x => x.status === 'ATIVO')); this.carregandoPratos.set(false); },
+      error: e => { this.carregandoPratos.set(false); this.editando.set(false); this.erro.set(mensagemDeErro(e)); },
+    });
+  }
+
+  cancelar() { this.editando.set(false); }
+
+  incluido(id: number) { return id in this.marcados(); }
+  destaque(id: number) { return this.marcados()[id] === true; }
+  alternar(id: number) {
+    this.marcados.update(m => { const n = { ...m }; if (id in n) delete n[id]; else n[id] = false; return n; });
+  }
+  alternarDestaque(id: number) {
+    if (!this.incluido(id)) return;
+    this.marcados.update(m => ({ ...m, [id]: !m[id] }));
+  }
+
+  salvar() {
+    const itens = Object.entries(this.marcados()).map(([id, destaque]) => ({ pratoId: Number(id), destaque }));
+    this.salvando.set(true); this.erro.set('');
+    this.api.salvarDia(this.sel(), itens).subscribe({
+      next: d => {
+        this.dias.update(l => l.map(x => x.dia === d.dia ? d : x));
+        this.salvando.set(false); this.editando.set(false); this.ok.set(`Cardápio de ${d.nome} salvo.`);
+      },
+      error: e => { this.salvando.set(false); this.erro.set(mensagemDeErro(e, 'Não foi possível salvar.')); },
+    });
   }
 }

@@ -1,7 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 import { AppStateService } from '../../services/app-state.service';
+import { GestaoPedidoService } from '../../services/gestao-pedido.service';
 
 const NAV = [
   { path: '/admin/dashboard',       label: 'Dashboard',          icon: '📊' },
@@ -14,8 +15,7 @@ const NAV = [
   { path: '/admin/compras',         label: 'Compras',            icon: '🧾' },
   { path: '/admin/entregadores',    label: 'Entregadores',       icon: '🚗' },
   { path: '/admin/cozinha',         label: 'Cozinha',            icon: '👨‍🍳' },
-  { path: '/admin/relatorios',      label: 'Relatórios',         icon: '📈' },
-  { path: '/admin/matriz-bcg',      label: 'Matriz BCG',         icon: '🎯' },
+  { path: '/admin/matriz-bcg',      label: 'Vendas e Matriz BCG', icon: '🎯' },
 ];
 
 @Component({
@@ -112,12 +112,24 @@ const NAV = [
 </ng-template>
 `
 })
-export class AdminLayoutComponent {
+export class AdminLayoutComponent implements OnInit, OnDestroy {
   nav = NAV;
   open = signal(false);
 
-  constructor(private s: AppStateService, private r: Router) {}
+  // Selo do menu: pedidos novos (RECEBIDO) esperando confirmacao. Atualiza a cada 30 s.
+  pending = signal(0);
+  private timer: ReturnType<typeof setInterval> | null = null;
 
-  pending() { return this.s.orders().filter(o => o.status !== 'entregue').length; }
+  constructor(private s: AppStateService, private r: Router, private pedidos: GestaoPedidoService) {}
+
+  ngOnInit() {
+    this.atualizarSelo();
+    this.timer = setInterval(() => this.atualizarSelo(), 30000);
+  }
+  ngOnDestroy() { if (this.timer) clearInterval(this.timer); }
+
+  private atualizarSelo() {
+    this.pedidos.listar(['RECEBIDO'], 0, 1).subscribe({ next: p => this.pending.set(p.totalElements), error: () => {} });
+  }
   logout() { this.s.logoutAdmin(); this.r.navigateByUrl('/'); }
 }

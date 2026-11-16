@@ -147,3 +147,22 @@ export interface Dashboard {
   maisVendidos: { prato: string; quantidade: number; receita: number }[];
   estoqueBaixo: Ingrediente[];
 }
+
+// ---------- Cardapio da semana ----------
+export interface ItemDia { pratoId: number; nome: string; categoria: string; fotoUrl: string | null; preco: number; status: string; destaque: boolean; }
+export interface DiaCardapio { dia: number; nome: string; hoje: boolean; itens: ItemDia[]; }
+export interface ItemHoje {
+  pratoId: number; nome: string; descricao: string | null; categoria: string; fotoUrl: string | null;
+  preco: number; tempoPreparoMin: number | null; destaque: boolean;
+}
+
+// ---------- Vendas por prato e Matriz BCG ----------
+export type QuadranteBcg = 'ESTRELA' | 'VACA_LEITEIRA' | 'INTERROGACAO' | 'ABACAXI';
+export interface PratoBcg {
+  pratoId: number; nome: string; categoria: string; fotoUrl: string | null; preco: number; custo: number | null;
+  margemPct: number; quantidade: number; receita: number; quadrante: QuadranteBcg;
+}
+export interface RelatorioBcg {
+  dias: number; mediaMargemPct: number; limiarVendas: number;
+  pratos: PratoBcg[]; maisVendidos: PratoBcg[]; menosVendidos: PratoBcg[];
+}
