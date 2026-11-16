@@ -6,7 +6,7 @@ import { AuthService, mensagemDeErro } from '../../services/auth.service';
 <div class="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-8">
   <div class="fixed inset-0 overflow-hidden pointer-events-none"><div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-red-900/15 rounded-full blur-3xl"></div></div>
   <div class="relative z-10 w-full max-w-md">
-    <button (click)="r.navigateByUrl('/cliente/login')" class="flex items-center gap-2 text-neutral-400 hover:text-white mb-8 transition-colors text-sm">← Voltar</button>
+    <button (click)="r.navigateByUrl('/entrar')" class="flex items-center gap-2 text-neutral-400 hover:text-white mb-8 transition-colors text-sm">← Voltar</button>
     <div class="bg-[#141414] border border-neutral-800 rounded-2xl p-8">
       <div class="flex items-center gap-3 mb-8">
         <div class="p-2 bg-red-900/40 rounded-xl border border-red-800/50"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></div>
@@ -21,7 +21,7 @@ import { AuthService, mensagemDeErro } from '../../services/auth.service';
         }
         <button (click)="register()" [disabled]="loading()" class="w-full bg-red-800 hover:bg-red-700 disabled:opacity-60 text-white rounded-xl py-3 transition-colors mt-2 font-semibold">{{loading()?'Criando conta...':'Criar conta'}}</button>
       </div>
-      <p class="text-center text-neutral-500 text-sm mt-6">Já tem conta? <a routerLink="/cliente/login" class="text-red-400 hover:text-red-300 transition-colors">Entrar</a></p>
+      <p class="text-center text-neutral-500 text-sm mt-6">Já tem conta? <a routerLink="/entrar" class="text-red-400 hover:text-red-300 transition-colors">Entrar</a></p>
     </div>
   </div>
 </div>` })

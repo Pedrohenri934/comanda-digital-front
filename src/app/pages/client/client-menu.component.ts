@@ -19,7 +19,7 @@ import { moeda } from '../../models/status-pedido';
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
       <button (click)="r.navigateByUrl('/')" class="flex items-center gap-2">
         <span class="text-red-500 text-xl">🔥</span>
-        <span class="text-white font-semibold hidden sm:block">Comanda Digital</span>
+        <span class="text-white font-semibold hidden sm:block">Boi Na Brasa</span>
       </button>
       <div class="flex-1 max-w-sm">
         <input [(ngModel)]="busca" (ngModelChange)="buscaSig.set($event)" placeholder="Buscar prato..."
@@ -29,8 +29,12 @@ import { moeda } from '../../models/status-pedido';
         @if(auth.isLoggedIn() && auth.role()==='CLIENTE'){
           <span class="text-neutral-400 text-sm hidden md:block">{{auth.usuario()?.nome}}</span>
           <button (click)="r.navigateByUrl('/cliente/pedidos')" class="px-3 py-2 text-sm text-neutral-300 hover:text-red-400 transition-colors">Meus pedidos</button>
+        } @else if(auth.isLoggedIn()){
+          <span class="text-neutral-400 text-sm hidden md:block">{{auth.usuario()?.nome}}</span>
+          <button (click)="irParaPainel()" class="px-3 py-2 text-sm text-neutral-300 hover:text-red-400 transition-colors">Meu painel</button>
         } @else {
-          <button (click)="r.navigateByUrl('/cliente/login')" class="px-3 py-2 text-sm text-neutral-300 hover:text-red-400 transition-colors">Entrar</button>
+          <button (click)="r.navigateByUrl('/entrar')" class="px-3 py-2 text-sm text-neutral-300 hover:text-red-400 transition-colors">Entrar</button>
+          <button (click)="r.navigateByUrl('/cliente/cadastro')" class="px-3 py-2 text-sm bg-red-800 hover:bg-red-700 text-white rounded-xl transition-colors hidden sm:block">Cadastrar</button>
         }
         <button (click)="carrinhoAberto.set(true)" class="relative p-2 bg-red-900/40 hover:bg-red-900/60 border border-red-800/50 rounded-xl transition-colors" aria-label="Abrir carrinho">
           <span class="text-lg">🛒</span>
@@ -70,8 +74,8 @@ import { moeda } from '../../models/status-pedido';
           <div class="bg-[#141414] border border-neutral-800 rounded-2xl overflow-hidden group">
             <button (click)="abrirDetalhe(p)" class="block w-full text-left">
               <div class="relative h-44 bg-gradient-to-br from-red-950 to-neutral-900 flex items-center justify-center">
-                @if(p.fotoUrl){
-                  <img [src]="p.fotoUrl" [alt]="p.nome" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+                @if(p.fotoUrl && !fotosQuebradas().has(p.id)){
+                  <img [src]="p.fotoUrl" (error)="fotoQuebrou(p.id)" [alt]="p.nome" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
                 } @else {
                   <span class="text-5xl">{{emoji(p.categoria)}}</span>
                 }
@@ -112,7 +116,7 @@ import { moeda } from '../../models/status-pedido';
       <div class="absolute inset-0 bg-black/80" (click)="detalhe.set(null)"></div>
       <div class="relative w-full max-w-md bg-[#111111] border border-neutral-800 rounded-2xl max-h-[90vh] overflow-y-auto">
         <div class="h-40 bg-gradient-to-br from-red-950 to-neutral-900 flex items-center justify-center overflow-hidden rounded-t-2xl">
-          @if(d.fotoUrl){<img [src]="d.fotoUrl" [alt]="d.nome" class="w-full h-full object-cover"/>} @else {<span class="text-6xl">{{emoji(d.categoria)}}</span>}
+          @if(d.fotoUrl && !fotosQuebradas().has(d.id)){<img [src]="d.fotoUrl" (error)="fotoQuebrou(d.id)" [alt]="d.nome" class="w-full h-full object-cover"/>} @else {<span class="text-6xl">{{emoji(d.categoria)}}</span>}
         </div>
         <div class="p-6 space-y-3">
           <div class="flex items-start justify-between gap-3">
@@ -247,6 +251,9 @@ export class ClientMenuComponent implements OnInit {
 
   carrinhoAberto = signal(false);
   checkoutAberto = signal(false);
+  // Foto que nao carrega (link fora do ar) cai no emoji da categoria, em vez de mostrar imagem quebrada.
+  fotosQuebradas = signal<Set<number>>(new Set());
+  fotoQuebrou(id: number) { this.fotosQuebradas.update(s => new Set(s).add(id)); }
   enviando = signal(false);
   erroPedido = signal('');
   end = { rua: '', numero: '', cep: '', complemento: '' };
@@ -283,9 +290,16 @@ export class ClientMenuComponent implements OnInit {
   emoji(categoria: string): string {
     const c = categoria.toLowerCase();
     if (c.includes('bebida')) return '🥤';
+    if (c.includes('carne')) return '🥩';
+    if (c.includes('combo')) return '🍽️';
     if (c.includes('sobremesa') || c.includes('doce')) return '🍨';
     if (c.includes('acompanh') || c.includes('porç')) return '🍟';
     return '🍔';
+  }
+
+  irParaPainel() {
+    const perfil = this.auth.role();
+    this.r.navigateByUrl(perfil === 'COZINHEIRO' ? '/cozinha/painel' : '/admin/dashboard');
   }
 
   abrirDetalhe(p: Prato) { this.qtdDetalhe.set(1); this.obsDetalhe = ''; this.detalhe.set(p); }
@@ -295,7 +309,7 @@ export class ClientMenuComponent implements OnInit {
   finalizar() {
     if (!this.auth.hasRole('CLIENTE')) {
       this.carrinhoAberto.set(false);
-      this.r.navigate(['/cliente/login'], { queryParams: { returnUrl: '/cliente/cardapio?checkout=1' } });
+      this.r.navigate(['/entrar'], { queryParams: { returnUrl: '/?checkout=1' } });
       return;
     }
     this.carrinhoAberto.set(false);

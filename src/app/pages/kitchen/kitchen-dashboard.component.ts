@@ -19,5 +19,5 @@ import { KitchenBoardComponent } from './kitchen-board.component';
 export class KitchenDashboardComponent {
   auth = inject(AuthService);
   private r = inject(Router);
-  sair() { this.auth.limparSessao(); this.r.navigateByUrl('/cozinha/login'); }
+  sair() { this.auth.limparSessao(); this.r.navigateByUrl('/'); }
 }

@@ -15,9 +15,9 @@ function exigirPerfil(loginUrl: string, ...perfis: Perfil[]): CanActivateFn {
   };
 }
 
-export const clientGuard = exigirPerfil('/cliente/login', 'CLIENTE');
-export const kitchenGuard = exigirPerfil('/cozinha/login', 'COZINHEIRO', 'GERENTE', 'ADMIN');
-export const adminGuard = exigirPerfil('/admin/login', 'ADMIN', 'GERENTE');
+export const clientGuard = exigirPerfil('/entrar', 'CLIENTE');
+export const kitchenGuard = exigirPerfil('/entrar', 'COZINHEIRO', 'GERENTE', 'ADMIN');
+export const adminGuard = exigirPerfil('/entrar', 'ADMIN', 'GERENTE');
 
 // O SRS nao tem o perfil entregador: essa area continua com dados de demonstracao.
 export const delivererGuard = () => {

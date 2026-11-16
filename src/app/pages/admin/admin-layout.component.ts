@@ -119,5 +119,5 @@ export class AdminLayoutComponent {
   constructor(private s: AppStateService, private r: Router) {}
 
   pending() { return this.s.orders().filter(o => o.status !== 'entregue').length; }
-  logout() { this.s.logoutAdmin(); this.r.navigateByUrl('/admin/login'); }
+  logout() { this.s.logoutAdmin(); this.r.navigateByUrl('/'); }
 }

@@ -22,7 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       // 401 no próprio /auth/login é "senha errada", não sessão expirada: não redireciona.
       const ehAuth = req.url.includes('/api/auth/');
       if (err.status === 401 && paraNossaApi && !ehAuth) {
-        const destino = router.url.startsWith('/admin') ? '/admin/login' : '/cliente/login';
+        const destino = '/entrar';
         auth.logout(destino);
       }
       return throwError(() => err);
