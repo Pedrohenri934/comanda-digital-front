@@ -47,7 +47,7 @@ const UNIDADES_COMPATIVEIS: Record<Unidade, Unidade[]> = { G: ['G', 'KG'], KG: [
         <div class="flex flex-wrap gap-2 mt-3">
           <button (click)="editar(p)" class="text-xs text-neutral-300 hover:text-white px-3 py-1.5 rounded-lg bg-neutral-800">Editar</button>
           <button (click)="abrirFicha(p)" class="text-xs text-blue-300 hover:text-blue-200 px-3 py-1.5 rounded-lg border border-blue-900/60">Ficha técnica</button>
-          @if(p.categoria.toLowerCase().includes('combo')){<button (click)="abrirOpcoes(p)" class="text-xs text-purple-300 hover:text-purple-200 px-3 py-1.5 rounded-lg border border-purple-900/60">Opções do combo</button>}
+          <button (click)="abrirOpcoes(p)" class="text-xs text-purple-300 hover:text-purple-200 px-3 py-1.5 rounded-lg border border-purple-900/60">Opções de escolha</button>
           @if(p.status!=='ATIVO'){<button (click)="mudarStatus(p,'ATIVO')" class="text-xs text-green-400 px-3 py-1.5 rounded-lg border border-green-900/60">Ativar</button>}
           @if(p.status==='ATIVO'){<button (click)="mudarStatus(p,'PAUSADO')" class="text-xs text-yellow-400 px-3 py-1.5 rounded-lg border border-yellow-900/60">Pausar</button>}
           @if(p.status!=='INATIVO'){<button (click)="mudarStatus(p,'INATIVO')" class="text-xs text-red-400 px-3 py-1.5 rounded-lg border border-red-900/60">Inativar</button>}
@@ -89,7 +89,7 @@ const UNIDADES_COMPATIVEIS: Record<Unidade, Unidade[]> = { G: ['G', 'KG'], KG: [
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/80" (click)="opcoesPrato.set(null)"></div>
       <div class="relative w-full max-w-2xl bg-[#111111] border border-neutral-800 rounded-2xl p-6 space-y-4 max-h-[92vh] overflow-y-auto">
-        <div class="flex items-start justify-between"><h2 class="text-white font-semibold">Opções do combo — {{op.nome}}</h2>
+        <div class="flex items-start justify-between"><h2 class="text-white font-semibold">Opções de escolha — {{op.nome}}</h2>
           <button (click)="opcoesPrato.set(null)" class="text-neutral-400 hover:text-white" aria-label="Fechar">✕</button></div>
         <p class="text-neutral-500 text-xs">Cada grupo é uma escolha do cliente (ex.: Bebida). Mínimo 0 deixa o grupo opcional. A opção pode apontar para um prato: ao pedir, esse prato dá baixa no estoque.</p>
         @if(erroOpcoes()){<div class="bg-red-900/30 border border-red-800/50 text-red-400 rounded-xl px-3 py-2 text-sm">{{erroOpcoes()}}</div>}
