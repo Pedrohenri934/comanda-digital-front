@@ -20,3 +20,9 @@ export const emAndamento = (s: StatusPedido) => s !== 'FINALIZADO' && s !== 'CAN
 export const moeda = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const dataHora = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+/** Cor do food cost (RN02): verde ate 30%, amarelo de 31 a 35%, vermelho acima de 35%. */
+export function corFoodCost(v: number | null | undefined): string {
+  if (v === null || v === undefined) return 'text-neutral-400';
+  return v <= 30 ? 'text-green-400' : v <= 35 ? 'text-yellow-400' : 'text-red-400';
+}

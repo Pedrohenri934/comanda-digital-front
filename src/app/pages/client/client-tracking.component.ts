@@ -66,6 +66,7 @@ import { ETAPAS, STATUS_INFO, dataHora, emAndamento, moeda } from '../../models/
             <div class="flex items-start gap-3 mb-3">
               <div class="flex-1">
                 <p class="text-white text-sm">{{item.pratoNome}} <span class="text-neutral-500">×{{item.quantidade}}</span></p>
+                @for(e of item.escolhas ?? []; track e){<p class="text-neutral-400 text-xs">↳ {{e}}</p>}
                 @if(item.observacoes){<p class="text-neutral-500 text-xs">Obs.: {{item.observacoes}}</p>}
               </div>
               <p class="text-red-400 text-sm">{{moeda(item.subtotal)}}</p>

@@ -23,7 +23,14 @@ export interface Prato {
   tempoPreparoMin: number | null;
   categoriaId: number;
   categoria: string;
+  temOpcoes?: boolean;
 }
+
+// Combos com escolhas (grupos e opcoes).
+export interface OpcaoCombo { id: number; nome: string; pratoId: number | null; acrescimo: number; disponivel: boolean; }
+export interface GrupoCombo { id: number; nome: string; minimo: number; maximo: number; opcoes: OpcaoCombo[]; }
+export interface EscolhaCarrinho { grupo: string; opcaoId: number; nome: string; acrescimo: number; }
+export interface GrupoComboForm { nome: string; minimo: number; maximo: number; opcoes: { nome: string; pratoId: number | null; acrescimo: number }[]; }
 
 export type StatusPedido =
   | 'RECEBIDO' | 'CONFIRMADO' | 'EM_PREPARO' | 'PRONTO'
@@ -33,6 +40,7 @@ export interface ItemPedidoRequest {
   pratoId: number;
   quantidade: number;
   observacoes?: string;
+  opcoes?: number[];
 }
 
 export interface CriarPedidoRequest {
@@ -48,6 +56,7 @@ export interface PedidoItem {
   precoUnitario: number;
   subtotal: number;
   observacoes: string | null;
+  escolhas?: string[];
 }
 
 export interface Pedido {
@@ -71,6 +80,8 @@ export interface PedidoStatus {
 
 // Item do carrinho (fica no navegador ate o pedido ser enviado).
 export interface ItemCarrinho {
+  chave: string;
+  escolhas: EscolhaCarrinho[];
   pratoId: number;
   nome: string;
   precoVenda: number;
@@ -122,7 +133,7 @@ export interface IngredienteForm { nome: string; sku: string; unidadePadrao: Uni
 export interface FichaItem { ingredienteId: number; ingredienteNome?: string; quantidade: number; unidade: Unidade; fatorCorrecao: number; custoLinha?: number; }
 export interface Ficha {
   pratoId: number; rendimento: number; modoPreparo: string | null; itens: FichaItem[];
-  custoPorPorcao: number | null; precoVenda: number; foodCost: number | null;
+  custoPorPorcao: number | null; precoVenda: number; foodCost: number | null; aviso?: string | null;
 }
 
 // ---- Fornecedores e compras
@@ -138,7 +149,7 @@ export interface Compra {
 }
 
 // ---- Dashboard
-export interface DashboardTotais { pedidos: number; vendas: number; cancelados: number; pedidosAbertos: number; faturamento: number; ticketMedio: number; }
+export interface DashboardTotais { pedidos: number; vendas: number; cancelados: number; pedidosAbertos: number; faturamento: number; ticketMedio: number; foodCostMedio: number | null; }
 export interface Dashboard {
   dias: number;
   totais: DashboardTotais;

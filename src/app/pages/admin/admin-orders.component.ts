@@ -16,6 +16,16 @@ const FLUXO: StatusPedido[] = ['RECEBIDO', 'CONFIRMADO', 'EM_PREPARO', 'PRONTO',
       <button (click)="filtrar(st)" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm transition-colors" [class]="filtro()===st?'bg-red-800 text-white':'bg-[#1a1a1a] text-neutral-400 border border-neutral-800 hover:text-white'">{{info[st].label}}</button>
     }
   </div>
+  <div class="flex flex-wrap items-end gap-3 mb-6 bg-[#141414] border border-neutral-800 rounded-2xl p-4">
+    <label class="text-xs text-neutral-400">De<input type="date" [(ngModel)]="de" (ngModelChange)="aplicar()" class="block mt-1 bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-3 py-2 text-sm"/></label>
+    <label class="text-xs text-neutral-400">Até<input type="date" [(ngModel)]="ate" (ngModelChange)="aplicar()" class="block mt-1 bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-3 py-2 text-sm"/></label>
+    <label class="text-xs text-neutral-400">Canal
+      <select [(ngModel)]="canal" (ngModelChange)="aplicar()" class="block mt-1 bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-3 py-2 text-sm">
+        <option value="">Todos</option><option value="SITE">Site</option><option value="BALCAO">Balcão</option><option value="WHATSAPP">WhatsApp</option>
+      </select>
+    </label>
+    @if(de||ate||canal){<button (click)="limparFiltros()" class="px-3 py-2 rounded-xl text-sm text-neutral-300 bg-neutral-800 hover:bg-neutral-700">Limpar filtros</button>}
+  </div>
   @if(erroGeral()){<div class="bg-red-900/30 border border-red-800/50 text-red-400 rounded-xl px-4 py-3 text-sm mb-4">{{erroGeral()}}</div>}
   <div class="space-y-3">
     @if(carregando()){<p class="text-center py-12 text-neutral-500">Carregando...</p>}
@@ -29,7 +39,7 @@ const FLUXO: StatusPedido[] = ['RECEBIDO', 'CONFIRMADO', 'EM_PREPARO', 'PRONTO',
               <span class="text-xs px-2 py-0.5 rounded-lg border" [class]="info[p.status].color">{{info[p.status].label}}</span>
             </div>
             <p class="text-neutral-300 text-sm">{{p.clienteNome}}</p>
-            <p class="text-neutral-500 text-xs mt-1">{{data(p.criadoEm)}}</p>
+            <p class="text-neutral-500 text-xs mt-1">{{data(p.criadoEm)}} · canal {{p.canal}}</p>
           </div>
           <div class="text-right flex-shrink-0"><p class="text-red-400 font-bold">{{moeda(p.valorTotal)}}</p><p class="text-neutral-500 text-xs">{{p.itens.length}} item(ns)</p></div>
           <span class="text-neutral-500 text-sm">{{aberto()===p.id?'▲':'▼'}}</span>
@@ -39,6 +49,7 @@ const FLUXO: StatusPedido[] = ['RECEBIDO', 'CONFIRMADO', 'EM_PREPARO', 'PRONTO',
             <div><p class="text-neutral-400 text-xs mb-2">ITENS</p>
               @for(i of p.itens; track i.pratoId){
                 <div class="flex justify-between text-sm py-1"><span class="text-neutral-300">{{i.pratoNome}} ×{{i.quantidade}}@if(i.observacoes){ <span class="text-yellow-500/80 text-xs">({{i.observacoes}})</span>}</span><span class="text-neutral-400">{{moeda(i.subtotal)}}</span></div>
+                @for(e of i.escolhas ?? []; track e){<p class="text-blue-300 text-xs pl-3 pb-1">↳ {{e}}</p>}
               }
             </div>
             <div><p class="text-neutral-400 text-xs mb-1">📍 ENTREGA</p>
@@ -74,6 +85,7 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
   erroGeral = signal('');
   erros = signal<Record<number, string>>({});
   motivo = '';
+  de = ''; ate = ''; canal = '';
   private timer?: ReturnType<typeof setInterval>;
 
   ngOnInit() { this.carregar(); this.timer = setInterval(() => this.carregar(), 15000); }
@@ -81,9 +93,12 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
 
   filtrar(f: StatusPedido | 'todos') { this.filtro.set(f); this.carregando.set(true); this.carregar(); }
 
+  aplicar() { this.carregando.set(true); this.carregar(); }
+  limparFiltros() { this.de = ''; this.ate = ''; this.canal = ''; this.aplicar(); }
+
   carregar() {
     const f = this.filtro();
-    this.api.listar(f === 'todos' ? [] : [f], 0, 100, 'createdAt,desc').subscribe({
+    this.api.listar(f === 'todos' ? [] : [f], 0, 100, 'createdAt,desc', { de: this.de, ate: this.ate, canal: this.canal }).subscribe({
       next: pg => { this.pedidos.set(pg.content); this.erroGeral.set(''); this.carregando.set(false); },
       error: e => { this.erroGeral.set(mensagemDeErro(e, 'Não foi possível carregar os pedidos.')); this.carregando.set(false); },
     });

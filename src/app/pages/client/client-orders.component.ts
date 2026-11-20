@@ -104,5 +104,5 @@ export class ClientOrdersComponent implements OnInit {
   }
 
   contar(s: StatusPedido) { return this.pedidos().filter(p => p.status === s).length; }
-  resumo(p: Pedido) { return p.itens.map(i => `${i.quantidade}× ${i.pratoNome}`).join(', '); }
+  resumo(p: Pedido) { return p.itens.map(i => `${i.quantidade}× ${i.pratoNome}` + (i.escolhas?.length ? ` (${i.escolhas.join('; ')})` : '')).join(', '); }
 }

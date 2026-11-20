@@ -48,11 +48,25 @@ const ACAO: Partial<Record<StatusPedido, { proximo: StatusPedido; texto: string;
           @for(i of p.itens; track i.pratoId){
             <div class="mb-2">
               <div class="flex justify-between text-sm"><span class="text-neutral-300">{{i.pratoNome}}</span><span class="text-neutral-500">×{{i.quantidade}}</span></div>
+              @for(e of i.escolhas ?? []; track e){<p class="text-blue-300 text-xs pl-2">↳ {{e}}</p>}
               @if(i.observacoes){<p class="text-yellow-500/80 text-xs">Obs.: {{i.observacoes}}</p>}
             </div>
           }
           @if(p.observacoes){<p class="text-yellow-500/80 text-xs mb-2">Obs. do pedido: {{p.observacoes}}</p>}
           @if(erros()[p.id]){<div class="bg-red-900/30 border border-red-800/50 text-red-400 rounded-lg px-3 py-2 text-xs mb-2">{{erros()[p.id]}}</div>}
+          @if(p.status==='RECEBIDO' || p.status==='CONFIRMADO'){
+            @if(cancelando()===p.id){
+              <div class="mt-2 space-y-2">
+                <input [value]="motivo()" (input)="motivo.set($any($event.target).value)" placeholder="Motivo do cancelamento" maxlength="255" class="w-full bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-red-700 placeholder:text-neutral-600"/>
+                <div class="flex gap-2">
+                  <button (click)="confirmarCancelamento(p)" class="flex-1 rounded-xl py-2 text-sm bg-red-800 hover:bg-red-700 text-white">Confirmar cancelamento</button>
+                  <button (click)="cancelando.set(null)" class="px-3 rounded-xl py-2 text-sm bg-neutral-800 text-neutral-300">Voltar</button>
+                </div>
+              </div>
+            } @else {
+              <button (click)="iniciarCancelamento(p.id)" class="w-full rounded-xl py-2 text-sm border border-red-800 text-red-400 hover:bg-red-900/30 mt-2">Cancelar pedido</button>
+            }
+          }
           @if(acao[p.status]; as a){
             <button (click)="avancar(p, a.proximo)" [disabled]="enviando()===p.id" class="w-full text-white rounded-xl py-2.5 text-sm transition-colors mt-1 disabled:opacity-50" [class]="a.cor">
               {{enviando()===p.id ? 'Enviando...' : a.texto}}
@@ -71,13 +85,15 @@ export class KitchenBoardComponent implements OnInit, OnDestroy {
   carregando = signal(true);
   erroGeral = signal('');
   enviando = signal<number | null>(null);
+  cancelando = signal<number | null>(null);
+  motivo = signal('');
   erros = signal<Record<number, string>>({});
   total = computed(() => this.pedidos().length);
   private timer?: ReturnType<typeof setInterval>;
 
   ngOnInit() {
     this.carregar();
-    this.timer = setInterval(() => { if (this.enviando() === null) this.carregar(); }, 10000);
+    this.timer = setInterval(() => { if (this.enviando() === null && this.cancelando() === null) this.carregar(); }, 10000);
   }
   ngOnDestroy() { clearInterval(this.timer); }
 
@@ -94,6 +110,18 @@ export class KitchenBoardComponent implements OnInit, OnDestroy {
     this.api.alterarStatus(p.id, novo).subscribe({
       next: () => { this.enviando.set(null); this.carregar(); },
       error: e => { this.enviando.set(null); this.erros.update(m => ({ ...m, [p.id]: mensagemDePedido(e) })); },
+    });
+  }
+
+  iniciarCancelamento(id: number) { this.motivo.set(''); this.cancelando.set(id); }
+  confirmarCancelamento(p: PedidoGestao) {
+    const m = this.motivo().trim();
+    if (!m) { this.erros.update(e => ({ ...e, [p.id]: 'Informe o motivo do cancelamento.' })); return; }
+    this.enviando.set(p.id);
+    this.erros.update(e => ({ ...e, [p.id]: '' }));
+    this.api.alterarStatus(p.id, 'CANCELADO', m).subscribe({
+      next: () => { this.enviando.set(null); this.cancelando.set(null); this.carregar(); },
+      error: e => { this.enviando.set(null); this.erros.update(x => ({ ...x, [p.id]: mensagemDePedido(e) })); },
     });
   }
 

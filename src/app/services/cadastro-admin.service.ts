@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
-  CategoriaAdmin, CategoriaForm, Ficha, FichaItem, Ingrediente, IngredienteForm, Pagina, PratoAdmin, PratoForm, StatusPratoApi,
+  CategoriaAdmin, CategoriaForm, Ficha, GrupoCombo, GrupoComboForm, FichaItem, Ingrediente, IngredienteForm, Pagina, PratoAdmin, PratoForm, StatusPratoApi,
 } from '../models/api.models';
 
 // Cadastros do painel administrativo (perfis ADMIN e GERENTE).
@@ -24,6 +24,8 @@ export class CadastroAdminService {
     const params = new HttpParams().set('page', page).set('size', size).set('sort', 'nome');
     return this.http.get<Pagina<PratoAdmin>>(`${this.base}/pratos`, { params });
   }
+  opcoesDoPrato(id: number) { return this.http.get<GrupoCombo[]>(`${this.base}/pratos/${id}/opcoes`); }
+  salvarOpcoesDoPrato(id: number, grupos: GrupoComboForm[]) { return this.http.put<GrupoCombo[]>(`${this.base}/pratos/${id}/opcoes`, { grupos }); }
   criarPrato(f: PratoForm) { return this.http.post<PratoAdmin>(`${this.base}/pratos`, f); }
   atualizarPrato(id: number, f: PratoForm) { return this.http.put<PratoAdmin>(`${this.base}/pratos/${id}`, f); }
   statusPrato(id: number, status: StatusPratoApi) { return this.http.patch<PratoAdmin>(`${this.base}/pratos/${id}/status`, { status }); }

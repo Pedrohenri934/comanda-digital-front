@@ -6,7 +6,7 @@ import { CardapioService } from '../../services/cardapio.service';
 import { CardapioSemanaService } from '../../services/cardapio-semana.service';
 import { CarrinhoService } from '../../services/carrinho.service';
 import { PedidoService } from '../../services/pedido.service';
-import { Categoria, ItemHoje, Prato } from '../../models/api.models';
+import { Categoria, EscolhaCarrinho, GrupoCombo, ItemCarrinho, ItemHoje, OpcaoCombo, Prato } from '../../models/api.models';
 import { moeda } from '../../models/status-pedido';
 
 // Cardapio PUBLICO (RF-001): qualquer pessoa ve os pratos. Login so e exigido ao finalizar o pedido.
@@ -106,9 +106,11 @@ import { moeda } from '../../models/status-pedido';
             </button>
             <div class="px-4 pb-4 flex items-center justify-between">
               <p class="text-red-400 font-bold">{{moeda(p.precoVenda)}}</p>
-              @if(cart.qtdDoPrato(p.id)>0){
+              @if(p.temOpcoes){
+                <button (click)="abrirDetalhe(p)" class="bg-red-800 hover:bg-red-700 text-white rounded-xl px-3 py-1.5 text-sm transition-colors">Escolher{{cart.qtdDoPrato(p.id)>0 ? ' (' + cart.qtdDoPrato(p.id) + ' no carrinho)' : ''}}</button>
+              } @else if(cart.qtdDoPrato(p.id)>0){
                 <div class="flex items-center gap-2">
-                  <button (click)="cart.alterarQuantidade(p.id, cart.qtdDoPrato(p.id)-1)" class="w-7 h-7 bg-neutral-800 hover:bg-red-900 text-white rounded-lg text-sm" aria-label="Diminuir">−</button>
+                  <button (click)="cart.alterarQuantidade(chaveDe(p), cart.qtdDoPrato(p.id)-1)" class="w-7 h-7 bg-neutral-800 hover:bg-red-900 text-white rounded-lg text-sm" aria-label="Diminuir">−</button>
                   <span class="text-white text-sm w-4 text-center">{{cart.qtdDoPrato(p.id)}}</span>
                   <button (click)="cart.adicionar(p)" class="w-7 h-7 bg-red-800 hover:bg-red-700 text-white rounded-lg text-sm" aria-label="Aumentar">+</button>
                 </div>
@@ -142,6 +144,33 @@ import { moeda } from '../../models/status-pedido';
           </div>
           <p class="text-neutral-400 text-sm">{{d.descricao}}</p>
           @if(d.tempoPreparoMin){<p class="text-neutral-500 text-xs">⏱ Preparo médio: {{d.tempoPreparoMin}} min</p>}
+          @if(carregandoOpcoes()){<p class="text-neutral-500 text-xs">Carregando opções...</p>}
+          @for(g of grupos(); track g.id){
+            <div class="bg-[#1a1a1a] rounded-xl p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="text-white text-sm font-medium">{{g.nome}}</p>
+                <span class="text-xs px-2 py-0.5 rounded-lg" [class]="grupoOk(g) ? 'bg-green-900/30 text-green-400' : 'bg-yellow-900/30 text-yellow-400'">{{rotuloGrupo(g)}} · {{contagem(g)}}/{{g.maximo}}</span>
+              </div>
+              @for(o of g.opcoes; track o.id){
+                @if(g.maximo===1){
+                  <button (click)="escolherUma(g,o)" [disabled]="!o.disponivel" class="w-full flex items-center justify-between rounded-lg border px-3 py-2 text-sm disabled:opacity-40"
+                    [class]="qtdOpcao(g,o)>0 ? 'border-red-700 bg-red-900/20 text-white' : 'border-neutral-700 text-neutral-300 hover:border-neutral-500'">
+                    <span>{{qtdOpcao(g,o)>0 ? '● ' : '○ '}}{{o.nome}}@if(!o.disponivel){ (indisponível)}</span>
+                    <span class="text-xs text-neutral-400">{{o.acrescimo>0 ? '+ ' + moeda(o.acrescimo) : ''}}</span>
+                  </button>
+                } @else {
+                  <div class="flex items-center justify-between rounded-lg border border-neutral-700 px-3 py-2 text-sm" [class.opacity-40]="!o.disponivel">
+                    <span class="text-neutral-200">{{o.nome}}@if(!o.disponivel){ (indisponível)}@if(o.acrescimo>0){ <span class="text-xs text-neutral-400">+ {{moeda(o.acrescimo)}}</span>}</span>
+                    <div class="flex items-center gap-2">
+                      <button (click)="mudarMulti(g,o,-1)" [disabled]="qtdOpcao(g,o)===0" class="w-6 h-6 bg-neutral-700 text-white rounded text-sm disabled:opacity-40" aria-label="Diminuir">−</button>
+                      <span class="text-white w-4 text-center">{{qtdOpcao(g,o)}}</span>
+                      <button (click)="mudarMulti(g,o,1)" [disabled]="!o.disponivel || contagem(g)>=g.maximo" class="w-6 h-6 bg-red-800 text-white rounded text-sm disabled:opacity-40" aria-label="Aumentar">+</button>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          }
           <textarea [(ngModel)]="obsDetalhe" rows="2" maxlength="200" placeholder="Observações (ex.: sem cebola)" class="w-full bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-red-700 placeholder:text-neutral-600"></textarea>
           <div class="flex items-center justify-between pt-2">
             <div class="flex items-center gap-3">
@@ -149,7 +178,7 @@ import { moeda } from '../../models/status-pedido';
               <span class="text-white w-6 text-center">{{qtdDetalhe()}}</span>
               <button (click)="qtdDetalhe.set(min(50, qtdDetalhe()+1))" class="w-8 h-8 bg-red-800 text-white rounded-lg">+</button>
             </div>
-            <button (click)="adicionarDetalhe(d)" class="bg-red-800 hover:bg-red-700 text-white rounded-xl px-5 py-2.5 text-sm">Adicionar · {{moeda(d.precoVenda*qtdDetalhe())}}</button>
+            <button (click)="adicionarDetalhe(d)" [disabled]="!podeAdicionar()" class="bg-red-800 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-5 py-2.5 text-sm">Adicionar · {{moeda((d.precoVenda+acrescimoSel())*qtdDetalhe())}}</button>
           </div>
         </div>
       </div>
@@ -169,21 +198,22 @@ import { moeda } from '../../models/status-pedido';
           <div class="flex-1 flex items-center justify-center text-neutral-500">Carrinho vazio</div>
         } @else {
           <div class="flex-1 overflow-y-auto p-4 space-y-3">
-            @for(item of cart.itens(); track item.pratoId){
+            @for(item of cart.itens(); track item.chave){
               <div class="bg-[#1a1a1a] rounded-xl p-3 space-y-2">
                 <div class="flex items-center gap-3">
                   <div class="flex-1 min-w-0">
                     <p class="text-white text-sm truncate">{{item.nome}}</p>
+                    @for(e of textoEscolhas(item); track e){<p class="text-neutral-500 text-xs">{{e}}</p>}
                     <p class="text-red-400 text-sm">{{moeda(item.precoVenda*item.quantidade)}}</p>
                   </div>
                   <div class="flex items-center gap-1">
-                    <button (click)="cart.alterarQuantidade(item.pratoId, item.quantidade-1)" class="w-6 h-6 bg-neutral-700 text-white rounded text-sm" aria-label="Diminuir">−</button>
+                    <button (click)="cart.alterarQuantidade(item.chave, item.quantidade-1)" class="w-6 h-6 bg-neutral-700 text-white rounded text-sm" aria-label="Diminuir">−</button>
                     <span class="text-white text-sm w-5 text-center">{{item.quantidade}}</span>
-                    <button (click)="cart.alterarQuantidade(item.pratoId, item.quantidade+1)" class="w-6 h-6 bg-red-800 text-white rounded text-sm" aria-label="Aumentar">+</button>
+                    <button (click)="cart.alterarQuantidade(item.chave, item.quantidade+1)" class="w-6 h-6 bg-red-800 text-white rounded text-sm" aria-label="Aumentar">+</button>
                   </div>
-                  <button (click)="cart.remover(item.pratoId)" class="text-neutral-500 hover:text-red-400 text-sm" aria-label="Remover">🗑</button>
+                  <button (click)="cart.remover(item.chave)" class="text-neutral-500 hover:text-red-400 text-sm" aria-label="Remover">🗑</button>
                 </div>
-                <input [value]="item.observacoes" (input)="cart.alterarObservacoes(item.pratoId, $any($event.target).value)" maxlength="200" placeholder="Observações do item"
+                <input [value]="item.observacoes" (input)="cart.alterarObservacoes(item.chave, $any($event.target).value)" maxlength="200" placeholder="Observações do item"
                   class="w-full bg-[#111] border border-neutral-800 text-white rounded-lg px-3 py-1.5 text-xs outline-none focus:border-red-700 placeholder:text-neutral-600"/>
               </div>
             }
@@ -210,8 +240,8 @@ import { moeda } from '../../models/status-pedido';
         <div class="p-6 space-y-4">
           @if(erroPedido()){<div class="bg-red-900/30 border border-red-800/50 text-red-400 rounded-xl px-4 py-3 text-sm">{{erroPedido()}}</div>}
           <div class="bg-[#1a1a1a] rounded-xl p-3 text-sm space-y-1">
-            @for(item of cart.itens(); track item.pratoId){
-              <div class="flex justify-between text-neutral-300"><span>{{item.quantidade}}× {{item.nome}}</span><span>{{moeda(item.precoVenda*item.quantidade)}}</span></div>
+            @for(item of cart.itens(); track item.chave){
+              <div class="flex justify-between text-neutral-300"><span>{{item.quantidade}}× {{item.nome}}@if(item.escolhas.length){ <span class="text-neutral-500 text-xs">({{textoEscolhas(item).join(' · ')}})</span>}</span><span>{{moeda(item.precoVenda*item.quantidade)}}</span></div>
             }
           </div>
           <h3 class="text-neutral-300 text-sm">📍 Endereço de entrega</h3>
@@ -246,6 +276,7 @@ export class ClientMenuComponent implements OnInit {
 
   moeda = moeda;
   max = Math.max; min = Math.min;
+  chaveDe(p: Prato): string { return String(p.id); }
   readonly TAM = 50;
 
   categorias = signal<Categoria[]>([]);
@@ -274,6 +305,43 @@ export class ClientMenuComponent implements OnInit {
   detalhe = signal<Prato | null>(null);
   qtdDetalhe = signal(1);
   obsDetalhe = '';
+  // Escolhas do combo aberto no detalhe: grupos vindos da API e, por grupo, os ids escolhidos (pode repetir).
+  grupos = signal<GrupoCombo[]>([]);
+  selecao = signal<Record<number, number[]>>({});
+  carregandoOpcoes = signal(false);
+  acrescimoSel = computed(() => this.grupos().reduce((soma, g) =>
+    soma + (this.selecao()[g.id] ?? []).reduce((s, id) => s + (g.opcoes.find(o => o.id === id)?.acrescimo ?? 0), 0), 0));
+  podeAdicionar = computed(() => !this.carregandoOpcoes() && this.grupos().every(g => this.grupoOk(g)));
+
+  contagem(g: GrupoCombo): number { return (this.selecao()[g.id] ?? []).length; }
+  qtdOpcao(g: GrupoCombo, o: OpcaoCombo): number { return (this.selecao()[g.id] ?? []).filter(id => id === o.id).length; }
+  grupoOk(g: GrupoCombo): boolean { const n = this.contagem(g); return n >= g.minimo && n <= g.maximo; }
+  rotuloGrupo(g: GrupoCombo): string {
+    if (g.minimo === g.maximo) return g.maximo === 1 ? 'Escolha 1' : 'Escolha ' + g.maximo;
+    return g.minimo === 0 ? 'Opcional, até ' + g.maximo : 'Escolha de ' + g.minimo + ' a ' + g.maximo;
+  }
+  escolherUma(g: GrupoCombo, o: OpcaoCombo) {
+    const jaEscolhida = this.qtdOpcao(g, o) > 0;
+    this.selecao.update(s => ({ ...s, [g.id]: jaEscolhida && g.minimo === 0 ? [] : [o.id] }));
+  }
+  mudarMulti(g: GrupoCombo, o: OpcaoCombo, delta: number) {
+    this.selecao.update(s => {
+      const atual = [...(s[g.id] ?? [])];
+      if (delta > 0) { if (atual.length < g.maximo) atual.push(o.id); }
+      else { const i = atual.indexOf(o.id); if (i >= 0) atual.splice(i, 1); }
+      return { ...s, [g.id]: atual };
+    });
+  }
+  /** "Bebida: Guaraná" por grupo, para mostrar no carrinho. */
+  textoEscolhas(item: ItemCarrinho): string[] {
+    const porGrupo = new Map<string, Map<string, number>>();
+    for (const e of item.escolhas ?? []) {
+      const m = porGrupo.get(e.grupo) ?? new Map<string, number>();
+      m.set(e.nome, (m.get(e.nome) ?? 0) + 1);
+      porGrupo.set(e.grupo, m);
+    }
+    return [...porGrupo].map(([g, m]) => g + ': ' + [...m].map(([n, q]) => q > 1 ? n + ' ×' + q : n).join(', '));
+  }
 
   carrinhoAberto = signal(false);
   checkoutAberto = signal(false);
@@ -329,8 +397,35 @@ export class ClientMenuComponent implements OnInit {
     this.r.navigateByUrl(perfil === 'COZINHEIRO' ? '/cozinha/painel' : '/admin/dashboard');
   }
 
-  abrirDetalhe(p: Prato) { this.qtdDetalhe.set(1); this.obsDetalhe = ''; this.detalhe.set(p); }
-  adicionarDetalhe(p: Prato) { this.cart.adicionar(p, this.qtdDetalhe(), this.obsDetalhe); this.detalhe.set(null); }
+  abrirDetalhe(p: Prato) {
+    this.qtdDetalhe.set(1); this.obsDetalhe = ''; this.grupos.set([]); this.selecao.set({});
+    this.detalhe.set(p);
+    // Descobre se o prato e um combo com escolhas (a chamada e publica e leve).
+    this.carregandoOpcoes.set(true);
+    this.cardapio.opcoes(p.id).subscribe({
+      next: g => {
+        if (this.detalhe()?.id !== p.id) return;
+        this.grupos.set(g); this.carregandoOpcoes.set(false);
+        // Grupo de uma opcao so, obrigatorio: ja vem marcado.
+        const inicial: Record<number, number[]> = {};
+        for (const gr of g) { const ok = gr.opcoes.filter(o => o.disponivel); if (gr.minimo === 1 && gr.maximo === 1 && ok.length === 1) inicial[gr.id] = [ok[0].id]; }
+        this.selecao.set(inicial);
+      },
+      error: () => this.carregandoOpcoes.set(false),
+    });
+  }
+  adicionarDetalhe(p: Prato) {
+    if (!this.podeAdicionar()) return;
+    const escolhas: EscolhaCarrinho[] = [];
+    for (const g of this.grupos()) {
+      for (const id of this.selecao()[g.id] ?? []) {
+        const o = g.opcoes.find(x => x.id === id);
+        if (o) escolhas.push({ grupo: g.nome, opcaoId: o.id, nome: o.nome, acrescimo: o.acrescimo });
+      }
+    }
+    this.cart.adicionar(p, this.qtdDetalhe(), this.obsDetalhe, escolhas);
+    this.detalhe.set(null);
+  }
 
   // Finalizar: sem login vai para a tela de entrada e volta aqui com o carrinho intacto.
   finalizar() {
@@ -355,7 +450,7 @@ export class ClientMenuComponent implements OnInit {
       .filter(Boolean).join(' - ');
     this.enviando.set(true);
     this.pedidos.criar({
-      itens: this.cart.itens().map(i => ({ pratoId: i.pratoId, quantidade: i.quantidade, ...(i.observacoes.trim() ? { observacoes: i.observacoes.trim() } : {}) })),
+      itens: this.cart.itens().map(i => ({ pratoId: i.pratoId, quantidade: i.quantidade, ...(i.observacoes.trim() ? { observacoes: i.observacoes.trim() } : {}), ...(i.escolhas.length ? { opcoes: i.escolhas.map(e => e.opcaoId) } : {}) })),
       enderecoEntrega,
       ...(this.obsPedido.trim() ? { observacoes: this.obsPedido.trim() } : {}),
     }).subscribe({

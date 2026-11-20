@@ -3,7 +3,7 @@ import { Chart, registerables } from 'chart.js';
 import { DashboardService } from '../../services/dashboard.service';
 import { mensagemDeErro } from '../../services/auth.service';
 import { Dashboard } from '../../models/api.models';
-import { STATUS_INFO, moeda } from '../../models/status-pedido';
+import { STATUS_INFO, corFoodCost, moeda } from '../../models/status-pedido';
 
 Chart.register(...registerables);
 
@@ -19,17 +19,18 @@ const COR_STATUS: Record<string, string> = {
     <div><h1 class="text-white text-2xl font-semibold">Dashboard</h1><p class="text-neutral-400 text-sm mt-1">Vendas contam pedidos confirmados em diante (sem cancelados)</p></div>
     <div class="flex gap-2">
       @for(d of periodos; track d){
-        <button (click)="trocar(d)" class="px-4 py-2 rounded-xl text-sm" [class]="dias()===d?'bg-red-800 text-white':'bg-[#1a1a1a] text-neutral-400 border border-neutral-800 hover:text-white'">{{d}} dias</button>
+        <button (click)="trocar(d)" class="px-4 py-2 rounded-xl text-sm" [class]="dias()===d?'bg-red-800 text-white':'bg-[#1a1a1a] text-neutral-400 border border-neutral-800 hover:text-white'">{{rotulo(d)}}</button>
       }
     </div>
   </div>
   @if(erro()){<div class="bg-red-900/30 border border-red-800/50 text-red-400 rounded-xl px-4 py-3 text-sm mb-4">{{erro()}}</div>}
 
   @if(dados(); as d){
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
       <div class="bg-[#141414] border border-green-900/40 rounded-xl p-4"><p class="text-neutral-400 text-xs mb-1">Faturamento</p><p class="text-green-400 text-xl font-bold">{{moeda(d.totais.faturamento)}}</p></div>
       <div class="bg-[#141414] border border-neutral-800 rounded-xl p-4"><p class="text-neutral-400 text-xs mb-1">Vendas</p><p class="text-white text-xl font-bold">{{d.totais.vendas}}</p></div>
       <div class="bg-[#141414] border border-neutral-800 rounded-xl p-4"><p class="text-neutral-400 text-xs mb-1">Ticket médio</p><p class="text-white text-xl font-bold">{{moeda(d.totais.ticketMedio)}}</p></div>
+      <div class="bg-[#141414] border border-neutral-800 rounded-xl p-4"><p class="text-neutral-400 text-xs mb-1">Food cost médio</p><p class="text-xl font-bold" [class]="corFC(d.totais.foodCostMedio)">{{d.totais.foodCostMedio===null ? '—' : d.totais.foodCostMedio + '%'}}</p></div>
       <div class="bg-[#141414] border border-orange-900/40 rounded-xl p-4"><p class="text-neutral-400 text-xs mb-1">Em andamento agora</p><p class="text-orange-400 text-xl font-bold">{{d.totais.pedidosAbertos}}</p></div>
       <div class="bg-[#141414] border border-red-900/40 rounded-xl p-4"><p class="text-neutral-400 text-xs mb-1">Cancelados</p><p class="text-red-400 text-xl font-bold">{{d.totais.cancelados}}</p></div>
     </div>
@@ -39,6 +40,18 @@ const COR_STATUS: Record<string, string> = {
     <div class="lg:col-span-2 bg-[#141414] border border-neutral-800 rounded-2xl p-5">
       <h2 class="text-white font-semibold mb-3">Faturamento por dia</h2>
       <div class="h-64"><canvas #cDia></canvas></div>
+      @if(dados(); as d){
+        <div class="mt-4 max-h-48 overflow-y-auto border-t border-neutral-800">
+          <table class="w-full text-sm">
+            <thead><tr class="text-neutral-500 text-xs text-left"><th class="py-2 font-normal">Dia</th><th class="py-2 font-normal text-right">Pedidos</th><th class="py-2 font-normal text-right">Faturamento</th></tr></thead>
+            <tbody>
+              @for(v of d.vendasPorDia; track v.data){
+                <tr class="border-t border-neutral-800/60"><td class="py-1.5 text-neutral-300">{{v.data.slice(8,10)}}/{{v.data.slice(5,7)}}</td><td class="py-1.5 text-right text-neutral-300">{{v.pedidos}}</td><td class="py-1.5 text-right text-neutral-200">{{moeda(v.faturamento)}}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </div>
     <div class="bg-[#141414] border border-neutral-800 rounded-2xl p-5">
       <h2 class="text-white font-semibold mb-3">Pedidos por status</h2>
@@ -73,7 +86,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   @ViewChild('cTop', { static: true }) cTop!: ElementRef<HTMLCanvasElement>;
 
   moeda = moeda;
-  periodos = [7, 30, 90];
+  periodos = [1, 7, 30, 90];
+  rotulo = (d: number) => d === 1 ? 'Hoje' : d + ' dias';
+  corFC = corFoodCost;
   dias = signal(7);
   dados = signal<Dashboard | null>(null);
   erro = signal('');
@@ -100,10 +115,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     const eixos = { ticks: { color: texto }, grid: { color: grade } };
 
     this.graficos.push(new Chart(this.cDia.nativeElement, {
-      type: 'bar',
+      type: 'line',
       data: {
         labels: d.vendasPorDia.map(v => v.data.slice(8, 10) + '/' + v.data.slice(5, 7)),
-        datasets: [{ label: 'Faturamento (R$)', data: d.vendasPorDia.map(v => v.faturamento), backgroundColor: '#b91c1c', borderRadius: 4 }],
+        datasets: [{ label: 'Faturamento (R$)', data: d.vendasPorDia.map(v => v.faturamento), borderColor: '#ef4444', backgroundColor: 'rgba(185,28,28,0.2)', fill: true, tension: 0.3, pointRadius: 3 }],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: eixos, y: { ...eixos, beginAtZero: true } } },
     }));

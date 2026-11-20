@@ -11,9 +11,13 @@ export class GestaoPedidoService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/api/gestao/pedidos`;
 
-  listar(status: StatusPedido[] = [], page = 0, size = 100, sort = 'createdAt,asc'): Observable<Pagina<PedidoGestao>> {
+  listar(status: StatusPedido[] = [], page = 0, size = 100, sort = 'createdAt,asc',
+         filtros: { de?: string; ate?: string; canal?: string } = {}): Observable<Pagina<PedidoGestao>> {
     let params = new HttpParams().set('page', page).set('size', size).set('sort', sort);
     for (const s of status) params = params.append('status', s);
+    if (filtros.de) params = params.set('de', filtros.de);
+    if (filtros.ate) params = params.set('ate', filtros.ate);
+    if (filtros.canal) params = params.set('canal', filtros.canal);
     return this.http.get<Pagina<PedidoGestao>>(this.base, { params });
   }
 
