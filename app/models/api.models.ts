@@ -208,3 +208,8 @@ export interface Movimentacao {
   quantidade: number; lote: string | null; validade: string | null; custoUnitario: number | null; observacao: string | null;
   usuarioNome: string; pedidoId: number | null; criadoEm: string;
 }
+
+// ---- Catalogo do fornecedor e cotacao comparativa
+export interface ProdutoFornecedor { ingredienteId: number; ingredienteNome: string; unidadePadrao: Unidade; preco: number; unidadeVenda: string; }
+export interface CotacaoLinha { fornecedorId: number; fornecedorNome: string; preco: number; unidadeVenda: string; diferencaPercentual: number; menorPreco: boolean; }
+export interface Cotacao { ingredienteId: number; ingredienteNome: string; unidadePadrao: Unidade; custoAtual: number; fornecedores: CotacaoLinha[]; }

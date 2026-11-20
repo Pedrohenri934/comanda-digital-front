@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CompraAdminService } from '../../services/compra-admin.service';
 import { CadastroAdminService } from '../../services/cadastro-admin.service';
 import { mensagemDeErro } from '../../services/auth.service';
-import { Compra, CompraItemForm, Fornecedor, Ingrediente, StatusCompra } from '../../models/api.models';
+import { Compra, CompraItemForm, Cotacao, Fornecedor, Ingrediente, StatusCompra } from '../../models/api.models';
 import { dataHora, moeda } from '../../models/status-pedido';
 
 const COR: Record<StatusCompra, string> = {
@@ -69,7 +69,7 @@ const COR: Record<StatusCompra, string> = {
         <p class="text-neutral-400 text-xs">ITENS (quantidade na unidade padrão do ingrediente, preço por essa unidade)</p>
         @for(it of itens(); track $index; let idx=$index){
           <div class="grid grid-cols-12 gap-2 items-center">
-            <select [(ngModel)]="it.ingredienteId" class="col-span-5 bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-2 py-2 text-sm">
+            <select [(ngModel)]="it.ingredienteId" (ngModelChange)="cotar(idx, $event)" class="col-span-5 bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-2 py-2 text-sm">
               <option [ngValue]="0">Ingrediente</option>
               @for(g of ingredientesAtivos(); track g.id){<option [ngValue]="g.id">{{g.nome}} ({{g.unidadePadrao}})</option>}
             </select>
@@ -77,6 +77,19 @@ const COR: Record<StatusCompra, string> = {
             <input [(ngModel)]="it.precoUnitario" type="number" min="0" step="any" placeholder="Preço un." class="col-span-3 bg-[#1e1e1e] border border-neutral-700 text-white rounded-xl px-2 py-2 text-sm"/>
             <button (click)="removerItem(idx)" class="col-span-1 text-neutral-500 hover:text-red-400" aria-label="Remover">🗑</button>
           </div>
+          @if(cot()?.idx===idx && cot()?.dados; as c){
+            <div class="bg-[#161616] border border-neutral-800 rounded-xl p-3 text-xs space-y-1">
+              <p class="text-neutral-400">Cotação — {{c.ingredienteNome}} (custo atual {{moeda(c.custoAtual)}} / {{c.unidadePadrao}})</p>
+              @for(l of c.fornecedores; track l.fornecedorId){
+                <div class="flex items-center gap-2">
+                  <span class="flex-1 text-neutral-200">{{l.fornecedorNome}} @if(l.menorPreco){<span class="text-green-400">★ menor preço</span>}@else{<span class="text-neutral-500">+{{l.diferencaPercentual}}%</span>}</span>
+                  <span class="text-white">{{moeda(l.preco)}}</span>
+                  <button (click)="usarCotacao(idx, l.fornecedorId, l.preco)" class="text-blue-300 px-2 py-1 rounded-lg border border-blue-900/60">Usar</button>
+                </div>
+              }
+              @if(c.fornecedores.length===0){<p class="text-neutral-500">Nenhum fornecedor ativo vende este ingrediente. Cadastre no Catálogo do fornecedor.</p>}
+            </div>
+          }
         }
         <button (click)="adicionarItem()" class="text-sm text-blue-300 hover:text-blue-200">+ Adicionar item</button>
         <div class="flex items-center justify-between pt-2">
@@ -111,6 +124,16 @@ export class AdminPurchasesComponent implements OnInit {
   aberto = signal(false); salvando = signal(false); erroForm = signal(''); editId = signal<number | null>(null);
   fornecedorId: number | null = null;
   itens = signal<CompraItemForm[]>([]);
+  cot = signal<{ idx: number; dados: Cotacao } | null>(null);
+  cotar(idx: number, ingredienteId: number) {
+    if (!ingredienteId) { this.cot.set(null); return; }
+    this.api.cotacao(ingredienteId).subscribe({ next: d => this.cot.set({ idx, dados: d }), error: () => this.cot.set(null) });
+  }
+  /** Escolhe o fornecedor da cotacao e preenche o preco do item. */
+  usarCotacao(idx: number, fornecedorId: number, preco: number) {
+    this.fornecedorId = fornecedorId;
+    this.itens.update(l => l.map((it, i) => i === idx ? { ...it, precoUnitario: preco } : it));
+  }
   totalForm = () => this.itens().reduce((s, i) => s + (Number(i.quantidade) || 0) * (Number(i.precoUnitario) || 0), 0);
 
   ngOnInit() {
@@ -126,7 +149,7 @@ export class AdminPurchasesComponent implements OnInit {
     });
   }
 
-  nova() { this.editId.set(null); this.fornecedorId = null; this.itens.set([{ ingredienteId: 0, quantidade: 0, precoUnitario: 0 }]); this.erroForm.set(''); this.aberto.set(true); }
+  nova() { this.cot.set(null); this.editId.set(null); this.fornecedorId = null; this.itens.set([{ ingredienteId: 0, quantidade: 0, precoUnitario: 0 }]); this.erroForm.set(''); this.aberto.set(true); }
   editar(c: Compra) {
     this.editId.set(c.id); this.fornecedorId = c.fornecedorId; this.erroForm.set('');
     this.itens.set(c.itens.map(i => ({ ingredienteId: i.ingredienteId, quantidade: i.quantidade, precoUnitario: i.precoUnitario })));

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Compra, CompraItemForm, Fornecedor, FornecedorForm, StatusCompra } from '../models/api.models';
+import { Compra, CompraItemForm, Cotacao, ProdutoFornecedor, Fornecedor, FornecedorForm, StatusCompra } from '../models/api.models';
 
 // Fornecedores e compras (perfis ADMIN e GERENTE). Receber uma compra da entrada no estoque.
 @Injectable({ providedIn: 'root' })
@@ -15,6 +15,11 @@ export class CompraAdminService {
   atualizarFornecedor(id: number, f: FornecedorForm) { return this.http.put<Fornecedor>(`${this.base}/fornecedores/${id}`, f); }
   inativarFornecedor(id: number) { return this.http.delete<Fornecedor>(`${this.base}/fornecedores/${id}`); }
   reativarFornecedor(id: number) { return this.http.post<Fornecedor>(`${this.base}/fornecedores/${id}/reativar`, {}); }
+
+  produtosFornecedor(id: number) { return this.http.get<ProdutoFornecedor[]>(`${this.base}/fornecedores/${id}/produtos`); }
+  gravarProduto(id: number, corpo: { ingredienteId: number; preco: number; unidadeVenda?: string }) { return this.http.put<ProdutoFornecedor[]>(`${this.base}/fornecedores/${id}/produtos`, corpo); }
+  removerProduto(id: number, ingredienteId: number) { return this.http.delete<ProdutoFornecedor[]>(`${this.base}/fornecedores/${id}/produtos/${ingredienteId}`); }
+  cotacao(ingredienteId: number) { return this.http.get<Cotacao>(`${this.base}/cotacao/${ingredienteId}`); }
 
   compras(status?: StatusCompra): Observable<Compra[]> {
     const params = status ? new HttpParams().set('status', status) : new HttpParams();
