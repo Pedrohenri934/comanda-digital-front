@@ -1,63 +1,44 @@
-# Comanda Digital — Front-end
+# Comanda Digital — Front-end (Angular)
 
-Front-end Angular do sistema **Comanda Digital** (Dark Kitchen "Boi Na Brasa") — Trabalho Final de Desenvolvimento Full-Stack (UNASP-SP, Prof. Thiago Silva).
+Front-end do Trabalho Final de Desenvolvimento Full-Stack (UNASP-SP, Prof. Thiago Silva) — sistema **Boi Na Brasa**.
 
-## Links de produção
-
-| O quê | Endereço |
-|---|---|
-| Aplicação | https://comanda-digital-front-phi.vercel.app |
-| API | https://comanda-digital-api-production-3501f934.up.railway.app |
-| Swagger | https://comanda-digital-api-production-3501f934.up.railway.app/swagger-ui.html |
-| Repositório do back | https://github.com/Pedrohenri934/comanda-digital-api |
-
-## Usuários de teste
-
-| Perfil | E-mail | Senha |
-|---|---|---|
-| Administrador | admin@email.com | senha123 |
-| Gerente | gerente@email.com | senha123 |
-| Cozinha | cozinha@email.com | senha123 |
-| Cliente | criar conta pela tela de cadastro | — |
-| Entregador | carlos@entrega.com | 123456 |
-| Entregador | ana@entrega.com | 123456 |
-| Entregador (pendente) | joao@entrega.com | 123456 |
-
-## Funcionalidades
-
-- **Cliente:** cardápio público, carrinho, finalização de pedido, lista de pedidos e acompanhamento em tempo quase real.
-- **Cozinha:** quadro de pedidos com atualização automática e mudança de status.
-- **Administrador/Gerente:** gestão de pedidos (com cancelamento e motivo), categorias, pratos com ficha técnica, ingredientes e estoque, fornecedores, compras e dashboard com gráficos.
-- Autenticação JWT, guards por perfil e interceptor HTTP.
+- **Site no ar:** https://boi-na-brasa-phi.vercel.app
+- **API (Swagger):** https://comanda-digital-api-production-3501f934.up.railway.app/swagger-ui.html
+- **Repositório do back-end:** comanda-digital-api
 
 ## Tecnologias
 
-Angular 19 (standalone, signals, rotas lazy), Tailwind CSS, Chart.js, deploy na Vercel.
+Angular 19 (standalone, signals, rotas lazy) · Tailwind CSS · Chart.js · HttpClient com interceptor JWT · Vercel.
 
-## Como rodar localmente
-
-Pré-requisitos: Node 18+ e o back-end rodando em `http://localhost:8080`.
+## Como rodar (local)
 
 ```powershell
 npm install
 npx ng serve
 ```
 
-Acesse http://localhost:4200. O endereço da API fica em `src/environments/environment.ts` (local) e `src/environments/environment.prod.ts` (produção).
+Abra http://localhost:4200. A URL da API fica em `src/environments/environment.ts` (local) e `environment.prod.ts` (produção).
 
-## Build de produção
+## Usuários de teste
 
-```powershell
-npm run build
-```
+| Perfil | E-mail | Senha |
+|---|---|---|
+| ADMIN | admin@email.com | senha123 |
+| GERENTE | gerente@email.com | senha123 |
+| COZINHEIRO | cozinha@email.com | senha123 |
+| ENTREGADOR | carlos@entrega.com | 123456 |
+| CLIENTE | crie pelo cadastro do site | — |
 
-Saída em `dist/boi-na-brasa-angular/browser`. O `vercel.json` já configura o build e o redirecionamento das rotas para o `index.html`.
+## Telas
 
-## Observação
+**Cliente:** cardápio com fotos e combos com escolhas, carrinho, checkout, meus pedidos e acompanhamento do pedido.
 
-Todas as telas usam a API real: cardápio, pedidos, cozinha, estoque, compras, dashboard, cardápio da semana, matriz BCG e entregadores.
+**Cozinha:** quadro de pedidos com avanço de status e cancelamento com motivo.
 
+**Entregador:** pedidos prontos, aceite e entrega.
 
-## Autor
+**Administração:** dashboard, pedidos (filtros por status, data e canal), cardápio e ficha técnica (food cost colorido), cardápio da semana, estoque (saldo, entrada, baixa por perda e movimentações, com alerta vermelho no menu), fornecedores com catálogo, compras com cotação comparativa, vendas e matriz BCG, e usuários internos (somente ADMIN).
 
-Pedro Henrique — ADS, UNASP-SP.
+## Deploy
+
+Publicado na Vercel a partir da branch principal. Ao mudar o domínio do site, atualize `CORS_ALLOWED_ORIGINS` no Railway (back-end).
